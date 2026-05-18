@@ -1,0 +1,13 @@
+/**
+ * NirikshaAI instrumentation bootstrap.
+ * Must be the first module loaded — pass via --require to ts-node.
+ */
+import { init } from '@nirikshaai/sdk'
+
+init({
+  endpoint: 'https://app.niriksha.ai',
+  otlpEndpoint: 'ingest.niriksha.ai:4317',
+  apiKey: process.env.NIRIKSHA_API_KEY ?? 'nai_your_key_here',
+  serviceName: 'product-catalog',
+  environment: process.env.NODE_ENV ?? 'production',
+})

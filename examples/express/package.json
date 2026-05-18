@@ -1,0 +1,21 @@
+{
+  "name": "niriksha-example-express",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NirikshaAI SDK — Express.js order API example",
+  "scripts": {
+    "start": "ts-node --require ./src/instrumentation.ts src/index.ts",
+    "dev": "NODE_ENV=development ts-node --require ./src/instrumentation.ts src/index.ts"
+  },
+  "dependencies": {
+    "@nirikshaai/sdk": "file:../../",
+    "@opentelemetry/api": "^1.9.0",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.14.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.0"
+  }
+}
