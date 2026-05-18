@@ -1,0 +1,39 @@
+{
+  "name": "@nirikshaai/sdk",
+  "version": "0.2.0",
+  "description": "NirikshaAI Node.js/TypeScript SDK — full-stack observability via OpenTelemetry",
+  "main": "dist/index.js",
+  "module": "dist/index.mjs",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format cjs,esm --dts",
+    "test": "vitest run"
+  },
+  "keywords": ["nirikshaai", "observability", "opentelemetry", "apm", "tracing", "metrics", "logs"],
+  "license": "Apache-2.0",
+  "peerDependencies": {
+    "@opentelemetry/api": ">=1.6",
+    "@opentelemetry/sdk-node": ">=0.52"
+  },
+  "dependencies": {
+    "@opentelemetry/exporter-trace-otlp-grpc": "^0.52.0",
+    "@opentelemetry/exporter-metrics-otlp-grpc": "^0.52.0",
+    "@opentelemetry/exporter-logs-otlp-grpc": "^0.52.0",
+    "@opentelemetry/resources": "^1.25.0",
+    "@opentelemetry/sdk-metrics": "^1.25.0",
+    "@opentelemetry/sdk-logs": "^0.52.0",
+    "@opentelemetry/semantic-conventions": "^1.25.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^1.6.0"
+  }
+}
