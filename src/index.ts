@@ -35,7 +35,10 @@
  */
 
 export { submitEval, submitEvalsBatch } from './eval'
-export { getPrompt, listPrompts } from './prompt'
+export { getPrompt, listPrompts, clearPromptCache } from './prompt'
+
+const SDK_VERSION = '0.2.0' // keep in sync with package.json
+const SDK_LANGUAGE = 'javascript'
 
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'
 import { Resource } from '@opentelemetry/resources'
@@ -153,6 +156,8 @@ export function init(options: InitOptions): void {
     [SEMRESATTRS_SERVICE_NAME]: serviceName,
     [SEMRESATTRS_DEPLOYMENT_ENVIRONMENT]: environment,
     'telemetry.sdk.name': 'nirikshaai-node',
+    'telemetry.sdk.version': SDK_VERSION,
+    'telemetry.sdk.language': SDK_LANGUAGE,
   })
 
   const exporterOpts = { url: grpcEndpoint, metadata: headers, ...(channelCreds ? { credentials: channelCreds } : {}) }
@@ -178,6 +183,22 @@ export function init(options: InitOptions): void {
   process.on('SIGINT',  () => sdk.shutdown().finally(() => process.exit(0)))
 
   _initialized = true
+}
+
+/**
+ * Force-flush all pending spans, metrics, and log records.
+ * Call before process exit in serverless / short-lived environments.
+ */
+export async function flush(): Promise<void> {
+  const { trace, metrics } = await import('@opentelemetry/api')
+  const tp = trace.getTracerProvider() as any
+  if (typeof tp?.forceFlush === 'function') await tp.forceFlush()
+  const mp = metrics.getMeterProvider() as any
+  if (typeof mp?.forceFlush === 'function') await mp.forceFlush()
+}
+
+export function isInitialized(): boolean {
+  return _initialized
 }
 
 function buildChannelCredentials(opts: {
