@@ -41,6 +41,7 @@ export type { RAGChunk, ToolCall } from './span'
 export { redactPii } from './pii'
 export { setBaggageContext, getBaggage } from './baggage'
 export { withFlush } from './serverless'
+export { expressMiddleware, fastifyPlugin } from './middleware'
 
 const SDK_VERSION = '0.2.0' // keep in sync with package.json
 const SDK_LANGUAGE = 'javascript'
@@ -96,6 +97,11 @@ export interface InitOptions {
    * Keep false in production unless you have PII controls.
    */
   capturePrompts?: boolean
+  /**
+   * Head-based trace sampling rate (0.0–1.0). Default: 1.0 (sample all traces).
+   * Use 0.1 to sample ~10% of traces. Requires @opentelemetry/sdk-trace-base.
+   */
+  sampleRate?: number
   /** OTLP gRPC port (default 4317). Ignored when otlpEndpoint is set explicitly. */
   otlpPort?: number
   /**
@@ -133,6 +139,7 @@ export function init(options: InitOptions): void {
     enableLogs = true,
     enableLLM = false,
     capturePrompts = false,
+    sampleRate = 1.0,
     otlpPort = 4317,
     otlpEndpoint,
     insecure = false,
@@ -180,6 +187,9 @@ export function init(options: InitOptions): void {
   const sdkOptions: any = { traceExporter, resource, instrumentations }
   if (metricReader) sdkOptions.metricReader = metricReader
   if (logProcessor) sdkOptions.logRecordProcessor = logProcessor
+
+  const sampler = buildSampler(sampleRate)
+  if (sampler) sdkOptions.sampler = sampler
 
   const sdk = new NodeSDK(sdkOptions)
   sdk.start()
@@ -323,4 +333,17 @@ function loadInstrumentations(
     }
   }
   return result
+}
+
+function buildSampler(rate: number) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { TraceIdRatioBasedSampler, ParentBasedSampler, AlwaysOnSampler, AlwaysOffSampler } =
+      require('@opentelemetry/sdk-trace-base') as typeof import('@opentelemetry/sdk-trace-base')
+    if (rate >= 1.0) return new AlwaysOnSampler()
+    if (rate <= 0.0) return new AlwaysOffSampler()
+    return new ParentBasedSampler({ root: new TraceIdRatioBasedSampler(rate) })
+  } catch {
+    return undefined
+  }
 }
