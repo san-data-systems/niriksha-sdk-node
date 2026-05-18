@@ -36,6 +36,11 @@
 
 export { submitEval, submitEvalsBatch } from './eval'
 export { getPrompt, listPrompts, clearPromptCache } from './prompt'
+export { recordConversation, recordRagChunk, recordToolCall } from './span'
+export type { RAGChunk, ToolCall } from './span'
+export { redactPii } from './pii'
+export { setBaggageContext, getBaggage } from './baggage'
+export { withFlush } from './serverless'
 
 const SDK_VERSION = '0.2.0' // keep in sync with package.json
 const SDK_LANGUAGE = 'javascript'
