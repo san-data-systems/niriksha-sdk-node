@@ -194,6 +194,26 @@ export function init(options: InitOptions): void {
   const sdk = new NodeSDK(sdkOptions)
   sdk.start()
 
+  // Install a diagnostic logger that surfaces quota-exceeded errors at
+  // console.error level. The OTEL SDK only logs export failures at WARN/DEBUG
+  // via the diag API, making them invisible in most production log setups.
+  try {
+    const { diag, DiagLogLevel } = require('@opentelemetry/api') as typeof import('@opentelemetry/api')
+    const prev = diag
+    diag.setLogger({
+      error(msg: string, ...args: unknown[]) { prev.error(msg, ...args) },
+      warn(msg: string, ...args: unknown[]) {
+        if (msg.includes('ResourceExhausted') && msg.includes('data limit reached')) {
+          console.error('[NirikshaAI] ERROR: org data quota exceeded — telemetry is being dropped. Contact your platform admin to increase the quota.')
+        }
+        prev.warn(msg, ...args)
+      },
+      info(msg: string, ...args: unknown[]) { prev.info(msg, ...args) },
+      debug(msg: string, ...args: unknown[]) { prev.debug(msg, ...args) },
+      verbose(msg: string, ...args: unknown[]) { prev.verbose(msg, ...args) },
+    }, DiagLogLevel.WARN)
+  } catch { /* @opentelemetry/api not available — skip */ }
+
   process.on('SIGTERM', () => sdk.shutdown().finally(() => process.exit(0)))
   process.on('SIGINT',  () => sdk.shutdown().finally(() => process.exit(0)))
 
