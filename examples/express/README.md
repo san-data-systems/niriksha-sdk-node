@@ -1,6 +1,6 @@
 # Express Orders API — NirikshaAI SDK Example
 
-This example shows how to instrument an Express.js REST API with NirikshaAI. The `instrumentation.ts` file initialises the SDK via `--require` so that OpenTelemetry is bootstrapped before any application code runs — this is the correct pattern for Express and ensures all inbound HTTP spans, database calls, and custom attributes are captured automatically and forwarded to `ingest.niriksha.ai:4317`.
+This example shows how to instrument an Express.js REST API with NirikshaAI. The `instrumentation.ts` file initialises the SDK via `--require` so that OpenTelemetry is bootstrapped before any application code runs — this is the correct pattern for Express and ensures all inbound HTTP spans, database calls, and custom attributes are captured automatically and forwarded to `grpc-ingest.niriksha.ai:4317`.
 
 ## Prerequisites
 

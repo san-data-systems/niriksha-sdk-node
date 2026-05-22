@@ -55,7 +55,7 @@ import { init } from '@nirikshaai/sdk'
 
 init({
   endpoint: 'https://app.niriksha.ai',
-  otlpEndpoint: 'ingest.niriksha.ai:4317', // SaaS: OTLP gateway is separate from the REST API
+  otlpEndpoint: 'grpc-ingest.niriksha.ai:4317', // SaaS: OTLP gateway is separate from the REST API
   apiKey: 'nai_...',
   serviceName: 'my-service',
 })
@@ -113,7 +113,7 @@ All options are passed to `init()`.
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `endpoint` | `string` | *(required)* | NirikshaAI REST/control-plane base URL. SaaS: `https://app.niriksha.ai`. Private Cloud: `https://niriksha.internal` |
-| `otlpEndpoint` | `string` | `undefined` | Override the gRPC OTLP address (`host:port`, no scheme). SaaS: `ingest.niriksha.ai:4317`. Derived from `endpoint` if omitted. |
+| `otlpEndpoint` | `string` | `undefined` | Override the gRPC OTLP address (`host:port`, no scheme). SaaS: `grpc-ingest.niriksha.ai:4317`. Derived from `endpoint` if omitted. |
 | `apiKey` | `string` | *(required)* | Project-scoped API key with `nai_` prefix |
 | `serviceName` | `string` | `"my-service"` | Value of the `service.name` OTEL resource attribute |
 | `environment` | `string` | `"production"` | Value of the `deployment.environment` OTEL resource attribute |
