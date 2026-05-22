@@ -9,7 +9,7 @@
  *   import { init } from '@nirikshaai/sdk'
  *   init({
  *     endpoint: 'https://app.niriksha.ai',
- *     otlpEndpoint: 'grpc-ingest.niriksha.ai:4317',
+ *     otlpEndpoint: 'grpc-ingest.niriksha.ai:443',
  *     apiKey: 'nai_...',
  *   })
  *
@@ -72,7 +72,7 @@ export interface InitOptions {
   /**
    * Override the gRPC OTLP address (host:port, no scheme).
    * Use when REST API and OTLP gateway are on different hosts.
-   *   SaaS example:          "grpc-ingest.niriksha.ai:4317"
+   *   SaaS example:          "grpc-ingest.niriksha.ai:443"
    *   Private Cloud example: "niriksha.internal:4317"
    * If omitted the SDK derives the address from endpoint's hostname + otlpPort.
    */
