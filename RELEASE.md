@@ -1,6 +1,6 @@
 # Release Guide — @nirikshaai/sdk (Node.js SDK)
 
-> Product: [niriksha.ai](https://niriksha.ai)  
+> Product: [niriksha.ai](https://niriksha.ai) · Company: [sandatasystem.ai](https://sandatasystem.ai)  
 > Maintainer: vbhadauriya@redcloudcomputing.com
 
 ---
@@ -156,16 +156,32 @@ npm view @nirikshaai/sdk versions --json
 
 ## Required Secrets & Setup (One-time)
 
-| Secret | Purpose | How to get |
-|--------|---------|-----------|
-| `NPM_TOKEN` | Publish to npm registry | [npmjs.com/settings/tokens](https://www.npmjs.com/settings/~/tokens) → Create "Automation" token |
-| `GITHUB_TOKEN` | Create releases | Auto-provided by GitHub Actions |
-| `NVD_API_KEY` | Speed up OWASP/audit scans | [nvd.nist.gov/developers](https://nvd.nist.gov/developers/request-an-api-key) (free) |
+> **Important:** All tokens below must be created from the **`@nirikshaai` npm organization account**, not a personal developer account (e.g. not `vbhadauriya`). This keeps niriksha publish rights separate from other San Data Systems products and allows any authorized team member to rotate tokens.
 
-### npm Scope Setup (one-time)
-1. Create or join `@nirikshaai` organization at [npmjs.com](https://npmjs.com)
-2. Generate an **Automation token** (works in CI without 2FA prompt)
-3. Add as GitHub repo secret: `NPM_TOKEN`
+### npm — Organization Token
+
+| Step | Action | URL |
+|------|--------|-----|
+| 1 | Sign in to npm as the **`nirikshaai` org account** | [npmjs.com/login](https://www.npmjs.com/login) |
+| 2 | Create (or confirm) the `@nirikshaai` organization | [npmjs.com/org/create](https://www.npmjs.com/org/create) |
+| 3 | Go to org settings → Access Tokens | [npmjs.com/settings/nirikshaai/tokens](https://www.npmjs.com/settings/nirikshaai/tokens) |
+| 4 | Create an **Automation** token (works in CI without 2FA) | Same page → Generate New Token → Automation |
+| 5 | Add token to GitHub as `NPM_TOKEN` | [github.com/san-data-systems/niriksha-sdk-node/settings/secrets/actions](https://github.com/san-data-systems/niriksha-sdk-node/settings/secrets/actions) |
+
+> Use an **Automation** token type — Classic or Granular tokens may fail in CI due to 2FA enforcement.
+
+### NVD API Key
+
+| Step | Action | URL |
+|------|--------|-----|
+| 1 | Request free NVD API key (niriksha.ai product email) | [nvd.nist.gov/developers/request-an-api-key](https://nvd.nist.gov/developers/request-an-api-key) |
+| 2 | Add secret `NVD_API_KEY` | [github.com/san-data-systems/niriksha-sdk-node/settings/secrets/actions](https://github.com/san-data-systems/niriksha-sdk-node/settings/secrets/actions) |
+
+| Secret | Purpose |
+|--------|---------|
+| `NPM_TOKEN` | Publish `@nirikshaai/sdk` to npm |
+| `GITHUB_TOKEN` | Create GitHub releases (auto-provided) |
+| `NVD_API_KEY` | Speed up audit scans |
 
 ### npm Provenance (already configured)
 The workflows use `--provenance` which links the npm package to its GitHub source. Requires `id-token: write` permission (already set).

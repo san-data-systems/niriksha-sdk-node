@@ -1,7 +1,7 @@
 # Contributing to @nirikshaai/sdk
 
 Thank you for helping improve the NirikshaAI Node.js SDK!  
-Product: [niriksha.ai](https://niriksha.ai)
+Product: [niriksha.ai](https://niriksha.ai) · Company: [sandatasystem.ai](https://sandatasystem.ai)
 
 ## Development Setup
 
