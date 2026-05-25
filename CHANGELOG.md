@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `dev-release.yml` workflow — auto-publishes `0.x.y-dev.{sha}` to npm `@dev` tag on every merge to `main`
+- `RELEASE.md` — comprehensive versioning, branching, and release process guide
+- Smart npm dist-tag selection in `release.yml` (alpha/beta/next/latest based on version string)
 - Internal structured logger (`src/internal/logger.ts`) replacing bare `console.*` calls
 - `NIRIKSHA_LOG_LEVEL` environment variable to control log verbosity (debug/info/warn/error)
 - ESLint with `@typescript-eslint` and `eslint-plugin-security` configuration
