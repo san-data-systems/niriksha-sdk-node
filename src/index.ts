@@ -34,6 +34,7 @@
  *   init({ ..., enableLLM: true })
  */
 
+import { logger } from './internal/logger'
 export { submitEval, submitEvalsBatch } from './eval'
 export { getPrompt, listPrompts, clearPromptCache } from './prompt'
 export { recordConversation, recordRagChunk, recordToolCall } from './span'
@@ -172,7 +173,8 @@ export function init(options: InitOptions): void {
     'telemetry.sdk.language': SDK_LANGUAGE,
   })
 
-  const exporterOpts = { url: grpcEndpoint, metadata: headers, ...(channelCreds ? { credentials: channelCreds } : {}) }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const exporterOpts: any = { url: grpcEndpoint, metadata: headers, ...(channelCreds ? { credentials: channelCreds } : {}) }
 
   const traceExporter: SpanExporter = new OTLPTraceExporter(exporterOpts)
   const metricReader: MetricReader | undefined = enableMetrics ? buildMetricReader(exporterOpts) : undefined
@@ -204,7 +206,7 @@ export function init(options: InitOptions): void {
       error(msg: string, ...args: unknown[]) { prev.error(msg, ...args) },
       warn(msg: string, ...args: unknown[]) {
         if (msg.includes('ResourceExhausted') && msg.includes('data limit reached')) {
-          console.error('[NirikshaAI] ERROR: org data quota exceeded — telemetry is being dropped. Contact your platform admin to increase the quota.')
+          logger.error('ERROR: org data quota exceeded — telemetry is being dropped. Contact your platform admin to increase the quota.')
         }
         prev.warn(msg, ...args)
       },
