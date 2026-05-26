@@ -36,12 +36,6 @@ vi.mock('@opentelemetry/api', () => {
 import { expressMiddleware, fastifyPlugin } from '../middleware'
 import { trace, SpanStatusCode } from '@opentelemetry/api'
 
-const getMockSpan = () => {
-  const mod = vi.mocked(trace)
-  return (mod.getTracer as any).mock.results[0]?.value?.startSpan?.mock?.results[0]?.value
-    ?? { setAttribute: vi.fn(), setStatus: vi.fn(), end: vi.fn() }
-}
-
 describe('expressMiddleware', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -139,9 +133,9 @@ describe('fastifyPlugin', () => {
   })
 
   it('registers onRequest, onResponse, and onError hooks', async () => {
-    const hooks: Record<string, Function> = {}
+    const hooks: Record<string, (...args: unknown[]) => unknown> = {}
     const fastify = {
-      addHook: vi.fn((name: string, fn: Function) => { hooks[name] = fn }),
+      addHook: vi.fn((name: string, fn: (...args: unknown[]) => unknown) => { hooks[name] = fn }),
     }
 
     await fastifyPlugin(fastify, {})
@@ -155,9 +149,9 @@ describe('fastifyPlugin', () => {
     const mockSpan = { setAttribute: vi.fn(), setStatus: vi.fn(), end: vi.fn() }
     vi.mocked(trace.getTracer).mockReturnValue({ startSpan: vi.fn(() => mockSpan) } as any)
 
-    const hooks: Record<string, Function> = {}
+    const hooks: Record<string, (...args: unknown[]) => unknown> = {}
     const fastify = {
-      addHook: vi.fn((name: string, fn: Function) => { hooks[name] = fn }),
+      addHook: vi.fn((name: string, fn: (...args: unknown[]) => unknown) => { hooks[name] = fn }),
     }
 
     await fastifyPlugin(fastify, {})
@@ -179,9 +173,9 @@ describe('fastifyPlugin', () => {
     const mockSpan = { setAttribute: vi.fn(), setStatus: vi.fn(), end: vi.fn() }
     vi.mocked(trace.getTracer).mockReturnValue({ startSpan: vi.fn(() => mockSpan) } as any)
 
-    const hooks: Record<string, Function> = {}
+    const hooks: Record<string, (...args: unknown[]) => unknown> = {}
     const fastify = {
-      addHook: vi.fn((name: string, fn: Function) => { hooks[name] = fn }),
+      addHook: vi.fn((name: string, fn: (...args: unknown[]) => unknown) => { hooks[name] = fn }),
     }
 
     await fastifyPlugin(fastify, {})
@@ -199,9 +193,9 @@ describe('fastifyPlugin', () => {
     const mockSpan = { setAttribute: vi.fn(), setStatus: vi.fn(), end: vi.fn() }
     vi.mocked(trace.getTracer).mockReturnValue({ startSpan: vi.fn(() => mockSpan) } as any)
 
-    const hooks: Record<string, Function> = {}
+    const hooks: Record<string, (...args: unknown[]) => unknown> = {}
     const fastify = {
-      addHook: vi.fn((name: string, fn: Function) => { hooks[name] = fn }),
+      addHook: vi.fn((name: string, fn: (...args: unknown[]) => unknown) => { hooks[name] = fn }),
     }
 
     await fastifyPlugin(fastify, {})
@@ -217,9 +211,9 @@ describe('fastifyPlugin', () => {
   })
 
   it('onResponse does nothing when no span attached', async () => {
-    const hooks: Record<string, Function> = {}
+    const hooks: Record<string, (...args: unknown[]) => unknown> = {}
     const fastify = {
-      addHook: vi.fn((name: string, fn: Function) => { hooks[name] = fn }),
+      addHook: vi.fn((name: string, fn: (...args: unknown[]) => unknown) => { hooks[name] = fn }),
     }
 
     await fastifyPlugin(fastify, {})
@@ -233,9 +227,9 @@ describe('fastifyPlugin', () => {
     const mockSpan = { setAttribute: vi.fn(), setStatus: vi.fn(), end: vi.fn(), recordException: vi.fn() }
     vi.mocked(trace.getTracer).mockReturnValue({ startSpan: vi.fn(() => mockSpan) } as any)
 
-    const hooks: Record<string, Function> = {}
+    const hooks: Record<string, (...args: unknown[]) => unknown> = {}
     const fastify = {
-      addHook: vi.fn((name: string, fn: Function) => { hooks[name] = fn }),
+      addHook: vi.fn((name: string, fn: (...args: unknown[]) => unknown) => { hooks[name] = fn }),
     }
 
     await fastifyPlugin(fastify, {})
@@ -254,9 +248,9 @@ describe('fastifyPlugin', () => {
   })
 
   it('onError does nothing when no span attached', async () => {
-    const hooks: Record<string, Function> = {}
+    const hooks: Record<string, (...args: unknown[]) => unknown> = {}
     const fastify = {
-      addHook: vi.fn((name: string, fn: Function) => { hooks[name] = fn }),
+      addHook: vi.fn((name: string, fn: (...args: unknown[]) => unknown) => { hooks[name] = fn }),
     }
 
     await fastifyPlugin(fastify, {})
