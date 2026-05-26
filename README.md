@@ -1,6 +1,10 @@
 # @nirikshaai/sdk
 
+[![CI](https://github.com/san-data-systems/niriksha-sdk-node/actions/workflows/ci.yml/badge.svg)](https://github.com/san-data-systems/niriksha-sdk-node/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@nirikshaai/sdk.svg)](https://www.npmjs.com/package/@nirikshaai/sdk)
+[![npm downloads](https://img.shields.io/npm/dm/@nirikshaai/sdk.svg)](https://www.npmjs.com/package/@nirikshaai/sdk)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+
 [![Node.js versions](https://img.shields.io/node/v/@nirikshaai/sdk.svg)](https://www.npmjs.com/package/@nirikshaai/sdk)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/npm/l/@nirikshaai/sdk.svg)](https://github.com/san-data-systems/sdk-node/blob/main/LICENSE)

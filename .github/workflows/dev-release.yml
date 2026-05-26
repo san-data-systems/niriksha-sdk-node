@@ -1,0 +1,78 @@
+name: Dev Release
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: dev-release
+  cancel-in-progress: true
+
+jobs:
+  dev-release:
+    name: Publish Dev Build to npm
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          registry-url: "https://registry.npmjs.org"
+
+      - run: npm ci
+
+      - name: Run tests (gate)
+        run: npm test
+
+      - name: Compute dev version
+        id: ver
+        run: |
+          CURRENT=$(node -p "require('./package.json').version")
+          SHA=$(git rev-parse --short HEAD)
+          DEV_VERSION="${CURRENT}-dev.${SHA}"
+          echo "version=$CURRENT" >> $GITHUB_OUTPUT
+          echo "dev_version=$DEV_VERSION" >> $GITHUB_OUTPUT
+          echo "Dev version: $DEV_VERSION"
+
+      - name: Stamp dev version
+        run: |
+          npm version ${{ steps.ver.outputs.dev_version }} --no-git-tag-version
+
+      - name: Build
+        run: npm run build
+
+      - name: Publish dev tag to npm
+        run: npm publish --access public --tag dev --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub pre-release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.ver.outputs.dev_version }}
+          name: "dev build v${{ steps.ver.outputs.dev_version }}"
+          prerelease: true
+          generate_release_notes: true
+          body: |
+            🔧 **Automated dev build** — not for production use.
+
+            Install with:
+            ```bash
+            # Latest dev build
+            npm install @nirikshaai/sdk@dev
+
+            # Specific dev build
+            npm install @nirikshaai/sdk@${{ steps.ver.outputs.dev_version }}
+            ```
+
+            **Commit:** ${{ github.sha }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

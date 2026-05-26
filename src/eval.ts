@@ -1,4 +1,5 @@
 import { _state } from './index'
+import { logger } from './internal/logger'
 
 export interface EvalInput {
   traceId: string
@@ -27,14 +28,14 @@ async function fetchWithRetry(
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     if (attempt > 1) {
-      console.debug(`[NirikshaAI] eval retry attempt ${attempt}`)
+      logger.debug(`eval retry attempt ${attempt}`)
       await sleep((attempt - 1) * 500)
     }
 
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), timeoutMs)
+    // AbortSignal.timeout() — no timer leak
+    const signal = AbortSignal.timeout(timeoutMs)
     try {
-      const res = await fetch(url, { ...init, signal: controller.signal })
+      const res = await fetch(url, { ...init, signal })
       if (res.ok || (res.status >= 400 && res.status < 500)) {
         // success or client error — don't retry
         return res
@@ -44,12 +45,10 @@ async function fetchWithRetry(
     } catch (err) {
       lastErr = err
       // network error or abort — fall through to retry
-    } finally {
-      clearTimeout(timer)
     }
   }
 
-  console.warn('[NirikshaAI] eval request failed after all retries:', lastErr)
+  logger.warn('eval request failed after all retries:', lastErr)
   throw lastErr
 }
 
