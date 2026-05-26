@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, "enhance/**"]
+    branches: [main, "enhance/**", "fix/**"]
   pull_request:
     branches: [main]
 
@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: "20"
           cache: npm
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - run: npm run typecheck
       - run: npm run lint
 
@@ -29,7 +29,7 @@ jobs:
         with:
           node-version: "20"
           cache: npm
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - run: npm run test:coverage
       - name: Upload coverage
         uses: actions/upload-artifact@v4
@@ -46,7 +46,7 @@ jobs:
         with:
           node-version: "20"
           cache: npm
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - run: npm run build
 
   audit:
@@ -58,5 +58,5 @@ jobs:
         with:
           node-version: "20"
           cache: npm
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - run: npm audit --audit-level=high

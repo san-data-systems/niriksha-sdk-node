@@ -49,14 +49,16 @@
     "@opentelemetry/semantic-conventions": "~1.25.0"
   },
   "devDependencies": {
+    "@opentelemetry/api": "^1.9.1",
+    "@opentelemetry/sdk-node": "^0.218.0",
     "@typescript-eslint/eslint-plugin": "^7.18.0",
     "@typescript-eslint/parser": "^7.18.0",
-    "@vitest/coverage-v8": "^1.6.1",
+    "@vitest/coverage-v8": "^4.1.7",
     "eslint": "^8.57.1",
     "eslint-plugin-security": "^3.0.1",
     "prettier": "^3.8.3",
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
-    "vitest": "^1.6.0"
+    "vitest": "^4.1.7"
   }
 }
