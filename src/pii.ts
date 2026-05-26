@@ -1,8 +1,8 @@
 // PII patterns compiled once at module load to avoid per-call overhead.
-const EMAIL_RE    = new RegExp('[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}', 'g')
-const PHONE_RE    = new RegExp('(\\+?1[\\s.-]?)?\\(?\\d{3}\\)?[\\s.-]?\\d{3}[\\s.-]?\\d{4}', 'g')
-const SSN_RE      = new RegExp('\\b\\d{3}-\\d{2}-\\d{4}\\b', 'g')
-const CC_RE       = new RegExp('\\b\\d{4}[- ]?\\d{4}[- ]?\\d{4}[- ]?\\d{0,4}\\b', 'g')
+const EMAIL_RE    = /[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/g
+const PHONE_RE    = /(\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/g
+const SSN_RE      = /\b\d{3}-\d{2}-\d{4}\b/g
+const CC_RE       = /\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{0,4}\b/g
 
 /**
  * Replace common PII patterns in a string with safe placeholders.
