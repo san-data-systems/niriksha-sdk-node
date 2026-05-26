@@ -13,7 +13,7 @@ const mockSpan = {
 // Mock @opentelemetry/api before importing span module
 vi.mock('@opentelemetry/api', () => ({
   trace: {
-    getActiveSpan: vi.fn<[], Span | undefined>(() => mockSpan as unknown as Span),
+    getActiveSpan: vi.fn(() => mockSpan as unknown as Span),
   },
   SpanStatusCode: { OK: 1, ERROR: 2 },
 }))

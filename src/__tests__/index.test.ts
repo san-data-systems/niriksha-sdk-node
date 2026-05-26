@@ -166,7 +166,7 @@ describe('diag logger callbacks (installed during init)', () => {
     // error/warn/info/debug/verbose methods. Call them to get function coverage.
     const { diag } = await import('@opentelemetry/api')
     const setLoggerMock = vi.mocked(diag.setLogger)
-    const logger = setLoggerMock.mock.calls[0]?.[0] as Record<string, (msg: string) => void> | undefined
+    const logger = setLoggerMock.mock.calls[0]?.[0] as unknown as Record<string, (msg: string) => void> | undefined
     if (logger) {
       expect(() => logger.error?.('test error')).not.toThrow()
       expect(() => logger.info?.('test info')).not.toThrow()
