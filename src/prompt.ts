@@ -1,4 +1,5 @@
 import { _state } from './index'
+import { logger } from './internal/logger'
 
 export interface GetPromptOptions {
   version?: number
@@ -47,26 +48,24 @@ async function fetchWithRetry(
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     if (attempt > 1) {
-      console.debug(`[NirikshaAI] prompt retry attempt ${attempt}`)
+      logger.debug(`prompt retry attempt ${attempt}`)
       await sleep((attempt - 1) * 500)
     }
 
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), timeoutMs)
+    // AbortSignal.timeout() — no timer leak
+    const signal = AbortSignal.timeout(timeoutMs)
     try {
-      const res = await fetch(url, { ...init, signal: controller.signal })
+      const res = await fetch(url, { ...init, signal })
       if (res.ok || (res.status >= 400 && res.status < 500)) {
         return res
       }
       lastErr = new Error(`HTTP ${res.status}`)
     } catch (err) {
       lastErr = err
-    } finally {
-      clearTimeout(timer)
     }
   }
 
-  console.warn('[NirikshaAI] prompt request failed after all retries:', lastErr)
+  logger.warn('prompt request failed after all retries:', lastErr)
   throw lastErr
 }
 
@@ -79,7 +78,7 @@ export async function getPrompt(name: string, options: GetPromptOptions = {}): P
   const key = _cacheKey(name, options)
   const cached = _cache.get(key)
   if (cached && Date.now() < cached.expiresAt) {
-    console.debug(`[NirikshaAI] prompt cache hit: ${key}`)
+    logger.debug(`prompt cache hit: ${key}`)
     return cached.data.content
   }
 
