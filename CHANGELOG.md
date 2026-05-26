@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.1] - 2026-05-27
+
 ### Added
 - `dev-release.yml` workflow — auto-publishes `0.x.y-dev.{sha}` to npm `@dev` tag on every merge to `main`
 - `RELEASE.md` — comprehensive versioning, branching, and release process guide

@@ -44,7 +44,7 @@ export { setBaggageContext, getBaggage } from './baggage'
 export { withFlush } from './serverless'
 export { expressMiddleware, fastifyPlugin } from './middleware'
 
-const SDK_VERSION = '0.2.0' // keep in sync with package.json
+const SDK_VERSION = '0.0.1' // keep in sync with package.json
 const SDK_LANGUAGE = 'javascript'
 
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'
