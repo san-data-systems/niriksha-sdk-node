@@ -170,18 +170,13 @@ npm view @nirikshaai/sdk versions --json
 
 > Use an **Automation** token type — Classic or Granular tokens may fail in CI due to 2FA enforcement.
 
-### NVD API Key
-
 | Step | Action | URL |
 |------|--------|-----|
-| 1 | Request free NVD API key (niriksha.ai product email) | [nvd.nist.gov/developers/request-an-api-key](https://nvd.nist.gov/developers/request-an-api-key) |
-| 2 | Add secret `NVD_API_KEY` | [github.com/san-data-systems/niriksha-sdk-node/settings/secrets/actions](https://github.com/san-data-systems/niriksha-sdk-node/settings/secrets/actions) |
 
 | Secret | Purpose |
 |--------|---------|
 | `NPM_TOKEN` | Publish `@nirikshaai/sdk` to npm |
 | `GITHUB_TOKEN` | Create GitHub releases (auto-provided) |
-| `NVD_API_KEY` | Speed up audit scans |
 
 ### npm Provenance (already configured)
 The workflows use `--provenance` which links the npm package to its GitHub source. Requires `id-token: write` permission (already set).
