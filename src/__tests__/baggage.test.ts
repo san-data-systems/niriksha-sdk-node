@@ -28,7 +28,7 @@ vi.mock('@opentelemetry/api', () => {
 })
 
 import { setBaggageContext, getBaggage } from '../baggage'
-import { propagation, context } from '@opentelemetry/api'
+import { propagation } from '@opentelemetry/api'
 
 describe('setBaggageContext', () => {
   beforeEach(() => {

@@ -9,20 +9,19 @@ import { describe, it, expect, vi } from 'vitest'
 
 // ── Hoisted mock instances ────────────────────────────────────────────────────
 const {
-  mockSdkStart,
   MockNodeSDK,
   capturedOTLPOpts,
   MockOTLPTraceExporter,
   MockResource,
   mockForceFlush,
 } = vi.hoisted(() => {
-  const mockSdkStart = vi.fn()
-  const mockSdkShutdown = vi.fn().mockResolvedValue(undefined)
+  const _sdkStart = vi.fn()
+  const _sdkShutdown = vi.fn().mockResolvedValue(undefined)
   const MockNodeSDK = vi.fn().mockImplementation(function (
     this: Record<string, unknown>,
   ) {
-    this.start = mockSdkStart
-    this.shutdown = mockSdkShutdown
+    this.start = _sdkStart
+    this.shutdown = _sdkShutdown
   })
 
   const capturedOTLPOpts: Record<string, unknown>[] = []
@@ -49,7 +48,7 @@ const {
 
   const mockForceFlush = vi.fn().mockResolvedValue(undefined)
 
-  return { mockSdkStart, MockNodeSDK, capturedOTLPOpts, MockOTLPTraceExporter, MockResource, mockForceFlush }
+  return { MockNodeSDK, capturedOTLPOpts, MockOTLPTraceExporter, MockResource, mockForceFlush }
 })
 
 // ── vi.mock() declarations (hoisted — must come before imports) ───────────────
