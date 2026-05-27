@@ -50,7 +50,15 @@ jobs:
         run: npm run build
 
       - name: Publish dev tag to npm
-        run: npm publish --access public --tag dev --provenance
+        # Retry up to 3 times with 30s back-off — guards against the E409
+        # "packument not fully processed" race that can occur shortly after
+        # a brand-new scoped package is first created on the registry.
+        run: |
+          for attempt in 1 2 3; do
+            npm publish --access public --tag dev --provenance && break
+            echo "Attempt $attempt failed — waiting 30s before retry..."
+            sleep 30
+          done
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
