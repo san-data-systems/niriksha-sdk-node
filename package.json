@@ -36,7 +36,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/san-data-systems/niriksha-sdk-node"
+    "url": "git+https://github.com/san-data-systems/niriksha-sdk-node.git"
   },
   "homepage": "https://github.com/san-data-systems/niriksha-sdk-node#readme",
   "bugs": {
