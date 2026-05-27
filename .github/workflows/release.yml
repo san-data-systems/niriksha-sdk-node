@@ -2,83 +2,70 @@ name: Release
 
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
 
 jobs:
-  validate:
-    name: Validate
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: npm
-      - run: npm ci
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run test
-
-  publish:
-    name: Publish to npm
-    needs: validate
+  release:
+    name: Auto-version & Publish
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       id-token: write
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: npm
           registry-url: "https://registry.npmjs.org"
-      - run: npm ci
-      - run: npm run build
-      - name: Determine npm dist-tag
-        id: tag
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          if [[ "$VERSION" == *"alpha"* ]]; then
-            echo "dist_tag=alpha" >> $GITHUB_OUTPUT
-          elif [[ "$VERSION" == *"beta"* ]]; then
-            echo "dist_tag=beta" >> $GITHUB_OUTPUT
-          elif [[ "$VERSION" == *"rc"* ]]; then
-            echo "dist_tag=next" >> $GITHUB_OUTPUT
-          elif [[ "$VERSION" == *"-"* ]]; then
-            echo "dist_tag=dev" >> $GITHUB_OUTPUT
-          else
-            echo "dist_tag=latest" >> $GITHUB_OUTPUT
-          fi
-          echo "Using dist-tag: $(cat $GITHUB_OUTPUT | grep dist_tag)"
 
-      - name: Publish
-        run: npm publish --access public --provenance --tag ${{ steps.tag.outputs.dist_tag }}
+      - run: npm ci --legacy-peer-deps
+
+      - name: Run tests
+        run: npm test
+
+      - name: Bump version and create tag
+        id: tag
+        uses: mathieudutour/github-tag-action@v6.2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          default_bump: patch
+          tag_prefix: "v"
+          release_branches: main
+
+      - name: Update version in package.json
+        run: |
+          npm version ${{ steps.tag.outputs.new_version }} --no-git-tag-version
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json
+          git diff --staged --quiet || git commit -m "chore: bump version to ${{ steps.tag.outputs.new_version }} [skip ci]"
+          git push
+
+      - name: Build
+        run: npm run build
+
+      - name: Publish to npm
+        run: |
+          for attempt in 1 2 3; do
+            npm publish --access public --provenance && break
+            echo "Attempt $attempt failed — waiting 30s before retry..."
+            sleep 30
+          done
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-  release:
-    name: GitHub Release
-    needs: publish
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
-          fetch-depth: 0
-      - name: Extract changelog notes
-        id: changelog
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          NOTES=$(awk "/^## \[${VERSION}\]/{flag=1; next} /^## \[/{flag=0} flag" CHANGELOG.md)
-          echo "notes<<EOF" >> $GITHUB_OUTPUT
-          echo "$NOTES" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-      - uses: softprops/action-gh-release@v2
-        with:
-          body: ${{ steps.changelog.outputs.notes }}
+          tag_name: ${{ steps.tag.outputs.new_tag }}
+          name: "v${{ steps.tag.outputs.new_version }}"
           generate_release_notes: true
+          body: ${{ steps.tag.outputs.changelog }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

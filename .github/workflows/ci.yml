@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, "enhance/**", "fix/**"]
+    branches: [main, develop]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 jobs:
   lint:
@@ -31,8 +31,7 @@ jobs:
           cache: npm
       - run: npm ci --legacy-peer-deps
       - run: npm run test:coverage
-      - name: Upload coverage
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: coverage
           path: coverage/
@@ -49,7 +48,7 @@ jobs:
       - run: npm ci --legacy-peer-deps
       - run: npm run build
 
-  audit:
+  security:
     name: Security Audit
     runs-on: ubuntu-latest
     steps:
@@ -59,4 +58,18 @@ jobs:
           node-version: "20"
           cache: npm
       - run: npm ci --legacy-peer-deps
-      - run: npm audit --audit-level=high
+      - name: npm audit (fail on HIGH or CRITICAL)
+        run: npm audit --audit-level=high
+
+  branch-gate:
+    name: Branch Gate (develop → main only)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    steps:
+      - name: Enforce develop → main only
+        run: |
+          if [[ "${{ github.head_ref }}" != "develop" ]]; then
+            echo "ERROR: Only the 'develop' branch may be merged into 'main'."
+            echo "Source branch: ${{ github.head_ref }}"
+            exit 1
+          fi
