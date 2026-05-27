@@ -33,19 +33,28 @@ Under the hood this is a thin wrapper around the [OpenTelemetry Node.js SDK](htt
 
 ## Installation
 
+### Latest stable release
+
 ```bash
 npm install @nirikshaai/sdk
-# Required peer dependencies
-npm install @opentelemetry/api @opentelemetry/sdk-node
 ```
 
-Or with Yarn:
+### Latest development build
 
 ```bash
-yarn add @nirikshaai/sdk @opentelemetry/api @opentelemetry/sdk-node
+# Install the latest dev build (auto-published on every merge to develop)
+npm install @nirikshaai/sdk@dev
 ```
 
-**Minimum Node.js version:** 18.x
+### With Yarn
+
+```bash
+yarn add @nirikshaai/sdk
+# Latest dev build
+yarn add @nirikshaai/sdk@dev
+```
+
+**Minimum Node.js version:** 18.x (supports 18, 20, 22)
 
 ---
 

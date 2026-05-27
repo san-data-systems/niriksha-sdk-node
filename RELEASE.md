@@ -1,232 +1,350 @@
 # Release Guide — @nirikshaai/sdk (Node.js SDK)
 
 > Product: [niriksha.ai](https://niriksha.ai) · Company: [sandatasystem.ai](https://sandatasystem.ai)  
-> Maintainer: vbhadauriya@redcloudcomputing.com
+> Maintainer: vbhadauriya@sandatasystem.com
 
 ---
 
-## Versioning Scheme
+## Overview
 
-This SDK follows [Semantic Versioning 2.0.0](https://semver.org):
+This SDK uses **fully automated releases** with a **main/develop branching model**:
+
+- **`develop` branch**: All feature work. PRs merge here → dev build auto-publishes
+- **`main` branch**: Production releases only. Protected — only `develop` can merge here
+- **Auto-versioning**: `mathieudutour/github-tag-action@v6.2` computes semver from commit messages
+- **Vulnerability gate**: `npm audit --audit-level=high` blocks merge if HIGH/CRITICAL CVEs found
+- **npm publish**: 3-attempt retry loop with 30s backoff (handles E409 race conditions)
+- **Provenance**: SLSA attestation (`--provenance`) links npm package to GitHub source
+
+---
+
+## Branching Model
+
+```
+develop ← feature/*, fix/*, enhance/* branches
+  ↓
+[PR → merge → CI passes → dev build publishes]
+  ↓
+main ← develop (PR gated by CI)
+  ↓
+[PR → merge → auto-versioning → npm publish]
+```
+
+### Branch Protection Rules
+
+| Branch | Rules |
+|--------|-------|
+| `develop` | Require PR, require CI to pass |
+| `main` | Require PR, require CI to pass, **require source branch be `develop`** (branch gate) |
+
+---
+
+## Semantic Versioning
+
+This project uses [Semantic Versioning 2.0.0](https://semver.org):
 
 ```
 MAJOR . MINOR . PATCH
-│       │       └── Bug fixes, security patches (backwards compatible)
-│       └────────── New features (backwards compatible)
-└────────────────── Breaking API changes
 ```
 
-### Version Lifecycle
+**Automatic version bumping** via commit message type:
 
-| Version Pattern | Meaning | npm tag | Published to |
-|----------------|---------|---------|-------------|
-| `0.2.0-dev.abc1234` | Auto dev build (every merge to `main`) | `dev` | npm + GitHub pre-release |
-| `0.2.1-alpha.1` | Alpha — early feature preview | `alpha` | npm pre-release |
-| `0.2.1-beta.1` | Beta — feature complete, needs testing | `beta` | npm pre-release |
-| `0.2.1-rc.1` | Release candidate — final testing | `next` | npm pre-release |
-| `0.2.1` | Stable release | `latest` | npm stable |
-| `1.0.0` | First stable API contract | `latest` | npm stable |
+| Commit type | Version bump | Example |
+|---|---|---|
+| `feat:` | MINOR | 0.2.0 → 0.3.0 |
+| `fix:`, `chore:` | PATCH | 0.2.0 → 0.2.1 |
+| `BREAKING CHANGE:` footer | MAJOR | 0.2.0 → 1.0.0 |
+| `docs:`, `refactor:`, `test:` | None | No release |
 
-> **Why not v0.0.0?** We start at `0.2.0`. `0.0.0` is a placeholder meaning "not yet versioned". `0.x.y` means the public API may still evolve; `1.0.0` signals a stable, committed public API.
-
-### Install a specific version
-
-```bash
-# Stable (latest)
-npm install @nirikshaai/sdk
-npm install @nirikshaai/sdk@0.2.0
-
-# Latest dev build (auto-published on every main merge)
-npm install @nirikshaai/sdk@dev
-
-# Specific dev build
-npm install @nirikshaai/sdk@0.2.0-dev.abc1234
-
-# Pre-release channels
-npm install @nirikshaai/sdk@alpha
-npm install @nirikshaai/sdk@beta
-npm install @nirikshaai/sdk@next   # RC channel
-```
+**Important:** Use conventional commit types in the subject line. The `[skip ci]` tag or commit body does not affect versioning.
 
 ---
 
-## Branching Strategy
+## Development Release (dev build)
 
-```
-main                  ← Protected. Every merge auto-publishes a dev build.
-│
-├── feature/xxx       ← New features. PR → main.
-├── fix/xxx           ← Bug fixes. PR → main.
-├── hotfix/xxx        ← Urgent production patches. PR → main.
-├── enhance/xxx       ← Improvements (docs, CI, deps). PR → main.
-└── release/x.y.z     ← Release preparation. PR → main, then tag.
-```
+### Automatic: Every merge to `develop`
 
-### Branch rules (configure in GitHub → Settings → Branches)
+Workflow: `dev-release.yml`
 
-| Branch | Protection |
-|--------|-----------|
-| `main` | Require PR, require CI to pass, no force-push |
+1. Code merges to `develop`
+2. GitHub Actions runs `dev-release.yml`
+3. Computes version: `X.Y.Z-dev.{short-sha}` (e.g., `0.3.0-dev.a1b2c3d`)
+4. Publishes to npm with `@dev` tag:
+   ```bash
+   npm publish --access public --tag dev --provenance
+   ```
+5. Creates GitHub pre-release
 
----
-
-## Release Types
-
-### 1. Patch Release (0.2.0 → 0.2.1)
-**When:** Bug fix, security patch, dependency bump. No new public API.
+### Install dev build
 
 ```bash
-# 1. Branch from main
-git checkout main && git pull
-git checkout -b release/0.2.1
-
-# 2. Bump version
-npm version patch --no-git-tag-version
-# Updates package.json: 0.2.0 → 0.2.1
-
-# 3. Also update SDK_VERSION constant in src/index.ts
-#    const SDK_VERSION = '0.2.0'  →  const SDK_VERSION = '0.2.1'
-vim src/index.ts
-
-# 4. Update CHANGELOG.md
-#    Move [Unreleased] entries to [0.2.1] with today's date
-
-# 5. Commit and open PR
-git add package.json package-lock.json src/index.ts CHANGELOG.md
-git commit -m "chore: release 0.2.1"
-git push -u origin release/0.2.1
-gh pr create --base main --title "chore: release 0.2.1"
-
-# 6. After PR merged, tag
-git checkout main && git pull
-git tag -a v0.2.1 -m "Release v0.2.1"
-git push origin v0.2.1
-# → release.yml publishes to npm automatically
-```
-
-### 2. Minor Release (0.2.0 → 0.3.0)
-**When:** New backwards-compatible features.
-
-Same steps: `npm version minor --no-git-tag-version`, tag `v0.3.0`.
-
-### 3. Major Release (0.x.y → 1.0.0)
-**When:** Breaking API changes (removing/renaming exported symbols).
-
-```bash
-npm version major --no-git-tag-version
-git tag -a v1.0.0 -m "Release v1.0.0"
-```
-
-### 4. Pre-release (alpha / beta / RC)
-
-```bash
-# Alpha — publish to npm under @alpha tag
-git tag -a v0.3.0-alpha.1 -m "Alpha 1 for 0.3.0"
-git push origin v0.3.0-alpha.1
-# → release.yml publishes: npm publish --tag alpha
-
-# Beta
-git tag -a v0.3.0-beta.1 -m "Beta 1 for 0.3.0"
-git push origin v0.3.0-beta.1
-# → release.yml publishes: npm publish --tag beta
-
-# Release Candidate
-git tag -a v0.3.0-rc.1 -m "RC 1 for 0.3.0"
-git push origin v0.3.0-rc.1
-# → release.yml publishes: npm publish --tag next
-```
-
-### 5. Dev Build (automatic)
-**When:** Every merge to `main` — no manual action required.
-
-The `dev-release.yml` workflow automatically:
-1. Computes version `0.2.0-dev.{short-sha}`
-2. Publishes to npm under the `dev` dist-tag
-3. Creates a GitHub pre-release
-
-```bash
-# Install latest dev build
+# Latest dev build
 npm install @nirikshaai/sdk@dev
 
-# See all published versions including dev
+# Specific dev build (if you know the SHA)
+npm install @nirikshaai/sdk@0.3.0-dev.a1b2c3d
+```
+
+### View all published versions
+
+```bash
 npm view @nirikshaai/sdk versions --json
 ```
 
 ---
 
-## Required Secrets & Setup (One-time)
+## Production Release
 
-> **Important:** All tokens below must be created from the **`@nirikshaai` npm organization account**, not a personal developer account (e.g. not `vbhadauriya`). This keeps niriksha publish rights separate from other San Data Systems products and allows any authorized team member to rotate tokens.
+### Manual: Create PR from `develop` to `main`
 
-### npm — Organization Token
+1. **Create PR from `develop` → `main`:**
+   ```bash
+   git checkout develop && git pull
+   git checkout -b release/prepare
+   # Make any last-minute updates (CHANGELOG, docs, etc.)
+   git push -u origin release/prepare
+   gh pr create --base main --title "chore: prepare release"
+   ```
 
-| Step | Action | URL |
-|------|--------|-----|
-| 1 | Sign in to npm as the **`nirikshaai` org account** | [npmjs.com/login](https://www.npmjs.com/login) |
-| 2 | Create (or confirm) the `@nirikshaai` organization | [npmjs.com/org/create](https://www.npmjs.com/org/create) |
-| 3 | Go to org settings → Access Tokens | [npmjs.com/settings/nirikshaai/tokens](https://www.npmjs.com/settings/nirikshaai/tokens) |
-| 4 | Create an **Automation** token (works in CI without 2FA) | Same page → Generate New Token → Automation |
-| 5 | Add token to GitHub as `NPM_TOKEN` | [github.com/san-data-systems/niriksha-sdk-node/settings/secrets/actions](https://github.com/san-data-systems/niriksha-sdk-node/settings/secrets/actions) |
+2. **CI verifies:**
+   - All tests pass (≥80% coverage)
+   - Lint and typecheck clean
+   - Vulnerability audit (`npm audit --audit-level=high`)
+   - Branch gate: source is `develop` ✅
 
-> Use an **Automation** token type — Classic or Granular tokens may fail in CI due to 2FA enforcement.
+3. **Merge to `main`:**
+   - Squash or rebase merge (clean history preferred)
+   - This **triggers `release.yml`**
 
-| Step | Action | URL |
-|------|--------|-----|
+4. **Automated release workflow executes:**
+   - `mathieudutour/github-tag-action@v6.2` analyzes commits since last tag
+   - Computes new semver (e.g., 0.2.0 → 0.3.0 if `feat:` found)
+   - Creates tag `vX.Y.Z` and pushes it
+   - Updates `package.json` version, commits with `[skip ci]` marker
+   - Publishes to npm:
+     ```bash
+     npm publish --access public --provenance
+     ```
+     (3-retry loop, 30s backoff for E409 race conditions)
+   - Creates GitHub Release with release notes
+   - Sends notification to #releases Slack channel (if configured)
 
-| Secret | Purpose |
-|--------|---------|
-| `NPM_TOKEN` | Publish `@nirikshaai/sdk` to npm |
-| `GITHUB_TOKEN` | Create GitHub releases (auto-provided) |
-
-### npm Provenance (already configured)
-The workflows use `--provenance` which links the npm package to its GitHub source. Requires `id-token: write` permission (already set).
+5. **Verify release:**
+   ```bash
+   npm view @nirikshaai/sdk@latest
+   ```
 
 ---
 
-## Release Checklist
+## Example Workflows
 
-- [ ] All CI checks green on `main`
-- [ ] `npm test` passes with ≥80% coverage
-- [ ] `npm run lint` clean
-- [ ] `npm run typecheck` clean
-- [ ] CHANGELOG.md updated — `[Unreleased]` moved to `[x.y.z]` with date
-- [ ] Version bumped in `package.json` AND `src/index.ts`
-- [ ] PR merged to `main`
-- [ ] Tag pushed: `git tag -a vX.Y.Z -m "Release vX.Y.Z" && git push origin vX.Y.Z`
-- [ ] npm publish confirmed: `npm view @nirikshaai/sdk versions`
-- [ ] GitHub Release created (auto by workflow)
+### Example 1: New feature (develop → main)
+
+```bash
+# 1. Feature branch from develop
+git checkout develop && git pull
+git checkout -b feature/llm-spans
+
+# 2. Write code, commit with conventional message
+echo "// LLM span helper" >> src/llm.ts
+git add src/llm.ts
+git commit -m "feat: add LLM span helpers for conversation tracking"
+
+# 3. Open PR to develop
+git push -u origin feature/llm-spans
+gh pr create --base develop --title "feat: add LLM span helpers"
+
+# 4. [After merge to develop] Dev build auto-publishes
+#    npm install @nirikshaai/sdk@dev  ← works immediately
+
+# 5. When ready for production: PR develop → main
+git checkout develop && git pull
+git checkout -b release/x.y.z
+git push -u origin release/x.y.z
+gh pr create --base main --title "Release x.y.z"
+
+# 6. [After merge to main] Production release auto-triggers
+#    Computes version: 0.2.0 → 0.3.0 (minor bump for feat:)
+#    Publishes to npm @latest
+#    Creates GitHub Release v0.3.0
+```
+
+### Example 2: Bug fix (develop → main)
+
+```bash
+# 1. Fix branch from develop
+git checkout develop && git pull
+git checkout -b fix/timer-leak
+
+# 2. Commit with fix type
+git commit -m "fix: prevent timer leak in fetchWithRetry"
+git push -u origin fix/timer-leak
+
+# 3. PR to develop, merge
+gh pr create --base develop
+
+# 4. Dev build: 0.2.0-dev.abc123
+
+# 5. When releasing: PR develop → main
+gh pr create --base main
+
+# 6. Production release triggers
+#    Computes: 0.2.0 → 0.2.1 (patch bump for fix:)
+#    Publishes @nirikshaai/sdk@0.2.1
+```
+
+### Example 3: Breaking change (major bump)
+
+```bash
+# 1. Breaking change on feature branch
+git checkout develop && git pull
+git checkout -b feat/redesign-api
+
+# 2. Commit with BREAKING CHANGE footer
+git commit -m "feat: redesign init() API
+
+BREAKING CHANGE: removed deprecated options x and y"
+
+git push -u origin feat/redesign-api
+gh pr create --base develop
+
+# 3. Dev build: 0.2.0-dev.xyz789
+
+# 4. PR develop → main
+gh pr create --base main
+
+# 5. Production release triggers
+#    Computes: 0.2.0 → 1.0.0 (major bump for BREAKING CHANGE)
+#    Publishes @nirikshaai/sdk@1.0.0
+```
 
 ---
 
 ## Hotfix Process
 
+For urgent production patches to `main`:
+
 ```bash
+# 1. Branch from main (not develop)
 git checkout main && git pull
-git checkout -b hotfix/fix-description
+git checkout -b hotfix/critical-bug
 
-# Fix + test + bump patch
-npm version patch --no-git-tag-version
+# 2. Fix and commit
+git commit -m "fix: critical authentication bypass"
 
-git commit -m "fix: critical bug description"
-git push -u origin hotfix/fix-description
+# 3. PR to main
+git push -u origin hotfix/critical-bug
 gh pr create --base main --title "hotfix: critical bug"
 
-# After merge
-git checkout main && git pull
-git tag -a v0.2.1 -m "Hotfix: critical bug"
-git push origin v0.2.1
+# 4. Merge to main → triggers release.yml
+#    Version bumps: 0.2.0 → 0.2.1 (patch)
+#    Publishes immediately
+
+# 5. Also merge back to develop to keep in sync
+git checkout develop && git pull
+git merge main
+git push origin develop
 ```
 
 ---
 
-## CHANGELOG Management
+## Required Secrets
 
-Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
+### GitHub Repository Secret
 
-```markdown
-## [Unreleased]          ← new changes go here first
-## [0.2.1] - 2025-06-01 ← moved here when releasing
-## [0.2.0] - 2025-05-01
+- **Name:** `NPM_TOKEN`
+- **Type:** npm Automation token
+- **Source:** npmjs.com → Account Settings → Access Tokens → Automation
+- **Why Automation:** Bypasses 2FA enforcement in CI. Classic/Granular tokens fail with 2FA enabled.
+- **Setup:** See [REGISTRY_SETUP.md](#registry-setupmd) section 2.3-2.4
+
+### Auto-provided Secrets
+
+- `GITHUB_TOKEN` — auto-injected, used for creating releases and pushing tags
+- No other secrets needed
+
+---
+
+## Release Checklist
+
+Before merging `develop` → `main`:
+
+- [ ] All commits follow conventional commit format
+- [ ] `npm test` passes with ≥80% coverage
+- [ ] `npm run lint` is clean
+- [ ] `npm run typecheck` is clean
+- [ ] `npm audit --audit-level=high` passes (no HIGH/CRITICAL vulns)
+- [ ] CHANGELOG.md has entries under `[Unreleased]` (optional but recommended)
+- [ ] No hardcoded secrets or environment-specific values
+
+---
+
+## Troubleshooting
+
+### Release didn't publish to npm
+
+1. **Check GitHub Actions workflow:**
+   - Go to repo → Actions → look for `release` workflow
+   - Click latest run, check logs for errors
+
+2. **Common causes:**
+   - `NPM_TOKEN` secret not set or expired
+   - E409 error → retry (should auto-retry 3 times)
+   - Vulnerability audit failed → fix CVEs before merging
+
+3. **Manual publish (if needed):**
+   ```bash
+   git checkout main && git pull
+   npm ci
+   npm run build
+   npm publish --access public --provenance --tag latest
+   ```
+
+### Semver computed incorrectly
+
+The `github-tag-action` analyzes **all commits** since the last tag (not just the latest commit).
+
+- Ensure commit messages strictly follow conventional commits format
+- Preview what will be computed by checking recent commits:
+  ```bash
+  git log --oneline --graph main...develop
+  ```
+
+### Need to skip CI for a commit
+
+Use `[skip ci]` in the commit message:
+
+```bash
+git commit -m "docs: update README [skip ci]"
 ```
 
-Every PR must include a CHANGELOG entry under `[Unreleased]`.
+This is used internally by the release workflow (auto-generated commits).
+
+---
+
+## FAQ
+
+**Q: Can I publish to npm manually?**  
+A: Not recommended. The automated workflow handles versioning, tags, and provenance. If needed for debugging, see "Manual publish" under Troubleshooting.
+
+**Q: Can feature branches deploy to npm?**  
+A: Only `develop` and `main` deploy. Feature branches must merge to `develop` first.
+
+**Q: What if I make a mistake and release the wrong version?**  
+A: Publish a new patch release. You can also use npm dist-tags to mark a version as `@latest` or `@dev` if needed.
+
+**Q: How do I release a pre-release (alpha, beta, RC)?**  
+A: Create a tag manually:
+  ```bash
+  git tag -a v0.3.0-rc.1 -m "Release candidate 1"
+  git push origin v0.3.0-rc.1
+  ```
+  `release.yml` will auto-detect the prerelease format and publish with the correct tag.
+
+**Q: Does the branch gate really block non-develop PRs to main?**  
+A: Yes. The GitHub branch protection rule and CI check enforce it. You cannot merge to `main` from any branch except `develop`.
+
+---
+
+For contribution guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).  
+For registry account setup, see [REGISTRY_SETUP.md](REGISTRY_SETUP.md).

@@ -1,303 +1,212 @@
-# Registry Account Setup Guide
+# npm Registry Setup Guide — @nirikshaai/sdk
 
-> This guide covers one-time account creation and configuration for all NirikshaAI SDK registries.  
+> This guide covers one-time npm account and token setup for publishing the Node.js SDK.  
 > Product: [niriksha.ai](https://niriksha.ai) · Company: [San Data Systems](https://sandatasystem.ai)  
-> Maintainer: vbhadauriya@redcloudcomputing.com
+> Maintainer: vbhadauriya@sandatasystem.com
 
 ---
 
 ## Table of Contents
 
-1. [PyPI — Python SDK](#1-pypi--python-sdk)
-2. [npm — Node.js SDK](#2-npm--nodejs-sdk)
-3. [Maven Central — Java SDK](#3-maven-central--java-sdk)
-4. [GitHub Secrets — All SDKs](#4-github-secrets--all-sdks)
-5. [GitHub Environments — Python](#5-github-environments--python)
+1. [Create npm Account](#1-create-npm-account)
+2. [Create Organization](#2-create-organization)
+3. [Generate Automation Token](#3-generate-automation-token)
+4. [Add Token to GitHub](#4-add-token-to-github)
+5. [Verify Setup](#5-verify-setup)
 
 ---
 
-## 1. PyPI — Python SDK
+## 1. Create npm Account
 
-### What it is
-[PyPI](https://pypi.org) (Python Package Index) is where Python packages are published. Users install with `pip install nirikshaai`.
-
-### 1.1 Create a PyPI Account
-
-1. Go to [pypi.org/account/register](https://pypi.org/account/register/)
-2. Fill in:
-   - **Username:** `nirikshaai` _(use the product name, not a personal username)_
-   - **Email:** use the niriksha.ai product email
-   - **Password:** strong password, store in a password manager
-3. Verify your email address
-4. Enable **Two-Factor Authentication (2FA)**:
-   - Go to [pypi.org/manage/account/two-factor](https://pypi.org/manage/account/two-factor/)
-   - Use an authenticator app (Google Authenticator, 1Password, etc.)
-   - Save recovery codes securely
-
-### 1.2 Create the `nirikshaai` project on PyPI
-
-The project is created automatically the first time you publish. However, you can reserve the name:
-
-1. Log in at [pypi.org](https://pypi.org)
-2. The project `nirikshaai` will appear at [pypi.org/project/nirikshaai](https://pypi.org/project/nirikshaai/) after first publish
-
-### 1.3 Configure Trusted Publisher (OIDC — no token needed)
-
-Trusted Publisher lets GitHub Actions publish directly without an API token, using OIDC identity.
-
-1. Log in to PyPI as the `nirikshaai` account
-2. Go to [pypi.org/manage/account/publishing](https://pypi.org/manage/account/publishing/)
-3. Under **"Add a new pending publisher"**, add **two entries**:
-
-**Entry 1 — Stable releases:**
-
-| Field | Value |
-|-------|-------|
-| PyPI Project Name | `nirikshaai` |
-| Owner (GitHub) | `san-data-systems` |
-| Repository | `niriksha-sdk-python` |
-| Workflow filename | `release.yml` |
-| Environment name | `pypi` |
-
-**Entry 2 — Dev builds:**
-
-| Field | Value |
-|-------|-------|
-| PyPI Project Name | `nirikshaai` |
-| Owner (GitHub) | `san-data-systems` |
-| Repository | `niriksha-sdk-python` |
-| Workflow filename | `dev-release.yml` |
-| Environment name | `pypi-dev` |
-
-4. Click **Add** for each entry — they appear as "Pending" until first publish
-
-### 1.4 Verify Setup
-
-After merging and tagging `v0.2.0`:
-```bash
-pip install nirikshaai
-python -c "import nirikshaai; print(nirikshaai.__version__)"
-```
-
----
-
-## 2. npm — Node.js SDK
-
-### What it is
-[npm](https://npmjs.com) is the Node.js package registry. Users install with `npm install @nirikshaai/sdk`.
-
-### 2.1 Create an npm Account
+This account will be the **organization account** for NirikshaAI releases (not a personal developer account).
 
 1. Go to [npmjs.com/signup](https://www.npmjs.com/signup)
 2. Fill in:
-   - **Username:** `nirikshaai` _(product account, not personal)_
-   - **Email:** use the niriksha.ai product email
-   - **Password:** strong password
+   - **Username:** `nirikshaai` (use product name, not personal)
+   - **Email:** `releases@niriksha.ai` (or team email that can receive notifications)
+   - **Password:** Strong password (20+ chars, mix of upper/lower/numbers/symbols)
 3. Verify your email address
-4. Enable **Two-Factor Authentication**:
+4. **Enable Two-Factor Authentication:**
    - Go to [npmjs.com/settings/nirikshaai/profile](https://www.npmjs.com/settings/nirikshaai/profile)
-   - Security → Enable 2FA → choose **"Auth and writes"** mode
-   - Save recovery codes
+   - Click **Security** → **Two-Factor Authentication**
+   - Choose mode: **"Auth and writes"** (protects login + package publishing)
+   - Save recovery codes in a secure location (password manager, etc.)
 
-### 2.2 Create the `@nirikshaai` Organization
+---
 
-1. Log in as `nirikshaai`
+## 2. Create Organization
+
+The `@nirikshaai` organization scope reserves the namespace and allows team members to publish under it.
+
+1. Log in as `nirikshaai` at [npmjs.com](https://www.npmjs.com)
 2. Go to [npmjs.com/org/create](https://www.npmjs.com/org/create)
 3. Fill in:
    - **Organization name:** `nirikshaai`
    - **Plan:** Free (for open source packages)
-4. The scope `@nirikshaai` is now reserved
+4. Click **Create**
+5. The scope `@nirikshaai` is now reserved
 
-### 2.3 Generate an Automation Token
+**Result:** Users can now install via `npm install @nirikshaai/sdk`
 
-> Use **Automation** token type — it bypasses 2FA enforcement in CI (Classic and Granular tokens fail when 2FA is enabled).
+---
+
+## 3. Generate Automation Token
+
+**Important:** Use **Automation** token type (NOT Classic or Granular). Automation tokens bypass 2FA enforcement in CI, while Classic/Granular tokens fail when 2FA is enabled.
 
 1. Log in as `nirikshaai` at [npmjs.com](https://www.npmjs.com)
 2. Go to [npmjs.com/settings/nirikshaai/tokens](https://www.npmjs.com/settings/nirikshaai/tokens)
-   _(or: avatar → Access Tokens)_
-3. Click **Generate New Token** → **Classic Token**
+   - Or: click your avatar → **Access Tokens**
+3. Click **Generate New Token**
 4. Select type: **Automation**
-5. Copy the token immediately — it is shown only once
-6. Store it in a password manager
+5. Copy the token immediately (shown only once)
+6. **Store securely** in a password manager
 
-### 2.4 Add Token to GitHub
+Example token format:
+```
+npm_abc123DEF456GHI789JKL...
+```
+
+> **Why Automation?** CI environments don't support interactive 2FA prompts. Automation tokens are specifically designed for this use case and bypass the 2FA requirement.
+
+---
+
+## 4. Add Token to GitHub
 
 1. Go to [github.com/san-data-systems/niriksha-sdk-node/settings/secrets/actions](https://github.com/san-data-systems/niriksha-sdk-node/settings/secrets/actions)
 2. Click **New repository secret**
-3. Name: `NPM_TOKEN`
-4. Value: paste the Automation token
-5. Click **Add secret**
+3. Fill in:
+   - **Name:** `NPM_TOKEN`
+   - **Value:** Paste the Automation token from step 3
+4. Click **Add secret**
 
-### 2.5 Verify Setup
-
-After merging and tagging `v0.2.0`:
-```bash
-npm install @nirikshaai/sdk
-node -e "const sdk = require('@nirikshaai/sdk'); console.log('ok')"
-```
+**Result:** The GitHub Actions workflows can now publish to npm without 2FA prompts.
 
 ---
 
-## 3. Maven Central — Java SDK
+## 5. Verify Setup
 
-### What it is
-[Maven Central](https://central.sonatype.com) is the standard Java package registry. Users add `ai.niriksha:niriksha-sdk-java` to their `pom.xml` or `build.gradle`.
+### Method 1: After first dev build (merge to `develop`)
 
-### 3.1 Create a Sonatype Central Account
-
-1. Go to [central.sonatype.com/sign-up](https://central.sonatype.com/sign-up)
-2. Fill in:
-   - **Username / email:** use the niriksha.ai product email
-   - **Password:** strong password
-3. Verify your email
-4. Enable **Two-Factor Authentication** in account settings
-
-### 3.2 Verify the `ai.niriksha` Namespace
-
-You must prove you own the `niriksha.ai` domain (which gives you the `ai.niriksha` groupId by Java's reversed-domain convention).
-
-1. Log in at [central.sonatype.com](https://central.sonatype.com)
-2. Go to **Publishing → Namespaces** → [central.sonatype.com/publishing/namespaces](https://central.sonatype.com/publishing/namespaces)
-3. Click **Add Namespace**
-4. Enter: `ai.niriksha`
-5. Sonatype will show a **verification key** (a random string)
-6. Add a DNS TXT record on `niriksha.ai`:
+1. Merge any commit to `develop` branch
+2. Wait ~2 minutes for GitHub Actions `dev-release.yml` to complete
+3. Check that it published:
+   ```bash
+   npm view @nirikshaai/sdk@dev version
+   # Output: 0.3.0-dev.a1b2c3d
    ```
-   Type:  TXT
-   Name:  @ (or niriksha.ai)
-   Value: <verification key from Sonatype>
-   TTL:   300
+4. Try installing:
+   ```bash
+   npm install @nirikshaai/sdk@dev
+   node -e "const sdk = require('@nirikshaai/sdk'); console.log('SDK loaded:', typeof sdk.init)"
    ```
-7. Click **Verify Namespace** — DNS propagation takes 5–30 minutes
-8. Status changes to **Verified** ✅
 
-> **Alternative:** If you control the GitHub org `san-data-systems`, you can verify via GitHub instead by setting `io.github.san-data-systems` as the namespace. However, using `ai.niriksha` is preferred for brand consistency.
+### Method 2: After first production release (merge to `main`)
 
-### 3.3 Generate a Deployment Token
+1. Merge `develop` → `main`
+2. Wait ~3 minutes for GitHub Actions `release.yml` to complete
+3. Check the release:
+   ```bash
+   npm view @nirikshaai/sdk@latest version
+   # Output: 0.3.0 (or whatever semver was computed)
+   ```
+4. Try installing:
+   ```bash
+   npm install @nirikshaai/sdk
+   ```
+5. Verify it works:
+   ```bash
+   node -e "const { init } = require('@nirikshaai/sdk'); console.log(typeof init)"
+   # Output: function
+   ```
 
-1. Log in to [central.sonatype.com](https://central.sonatype.com)
-2. Click your avatar → **View Account**
-3. Scroll to **Generate User Token**
-4. Click **Generate User Token**
-5. Copy both values:
-   - **Token username** → this is `OSSRH_USERNAME`
-   - **Token password** → this is `OSSRH_PASSWORD`
-6. Store both in a password manager — the password is shown only once
+### Method 3: Check npm org page
 
-### 3.4 Generate a GPG Signing Key
-
-Maven Central requires all artifacts to be GPG-signed.
-
-```bash
-# 1. Generate the key — use releases@niriksha.ai as the identity
-gpg --gen-key
-#    Real name:    NirikshaAI Releases
-#    Email:        releases@niriksha.ai
-#    Passphrase:   <choose a strong passphrase — save it>
-
-# 2. List keys to get your KEY_ID (the long hex after "sec rsa...")
-gpg --list-secret-keys --keyid-format LONG
-# Example output:
-# sec   rsa4096/AABBCCDD11223344 2025-01-01
-#                ^^^^^^^^^^^^^^^^ this is your KEY_ID
-
-# 3. Upload public key to the Ubuntu keyserver
-gpg --keyserver keyserver.ubuntu.com --send-keys AABBCCDD11223344
-
-# Also upload to keys.openpgp.org (Maven Central checks multiple servers)
-gpg --keyserver keys.openpgp.org --send-keys AABBCCDD11223344
-
-# 4. Export the armored private key (for GitHub secret)
-gpg --armor --export-secret-keys AABBCCDD11223344 > niriksha-releases.gpg.asc
-cat niriksha-releases.gpg.asc
-# Copy the entire output including -----BEGIN PGP PRIVATE KEY BLOCK----- lines
-```
-
-### 3.5 Add All Secrets to GitHub
-
-1. Go to [github.com/san-data-systems/niriksha-sdk-java/settings/secrets/actions](https://github.com/san-data-systems/niriksha-sdk-java/settings/secrets/actions)
-2. Add each secret:
-
-| Secret name | Value |
-|-------------|-------|
-| `OSSRH_USERNAME` | Token username from step 3.3 |
-| `OSSRH_PASSWORD` | Token password from step 3.3 |
-| `GPG_PRIVATE_KEY` | Full output of `gpg --armor --export-secret-keys` (including header/footer lines) |
-| `GPG_PASSPHRASE` | The passphrase you chose in step 3.4 |
-
-### 3.6 Verify Setup
-
-After merging and tagging `v0.1.0`:
-```xml
-<!-- Wait ~15 minutes for Maven Central sync, then test: -->
-<dependency>
-  <groupId>ai.niriksha</groupId>
-  <artifactId>niriksha-sdk-java</artifactId>
-  <version>0.1.0</version>
-</dependency>
-```
-
-Or search: [central.sonatype.com/search?q=ai.niriksha](https://central.sonatype.com/search?q=ai.niriksha)
+1. Go to [npmjs.com/package/@nirikshaai/sdk](https://www.npmjs.com/package/@nirikshaai/sdk)
+2. Verify:
+   - Package exists
+   - Scope is `@nirikshaai`
+   - Latest version is listed
+   - `@dev`, `@latest`, etc. tags are visible
 
 ---
 
-## 4. GitHub Secrets — All SDKs
+## Troubleshooting
 
-Summary of every secret needed across all four repositories:
+### "EAUTHIDENTIFY: authentication error"
 
-| Repository | Secret | Source | Required for |
-|-----------|--------|--------|-------------|
-| `niriksha-sdk-python` | `GITHUB_TOKEN` | Auto-provided | Releases, tags |
-| `niriksha-sdk-go` | `GITHUB_TOKEN` | Auto-provided | Releases, tags |
-| `niriksha-sdk-node` | `GITHUB_TOKEN` | Auto-provided | Releases, tags |
-| `niriksha-sdk-node` | `NPM_TOKEN` | npm → Automation token | `npm publish` |
-| `niriksha-sdk-java` | `GITHUB_TOKEN` | Auto-provided | Releases, tags |
-| `niriksha-sdk-java` | `OSSRH_USERNAME` | Sonatype → Generate User Token | `mvn deploy` |
-| `niriksha-sdk-java` | `OSSRH_PASSWORD` | Sonatype → Generate User Token | `mvn deploy` |
-| `niriksha-sdk-java` | `GPG_PRIVATE_KEY` | Local GPG key export | Artifact signing |
-| `niriksha-sdk-java` | `GPG_PASSPHRASE` | Your GPG key passphrase | Artifact signing |
+**Cause:** Token expired or incorrect
 
-> `GITHUB_TOKEN` is injected automatically by GitHub Actions into every workflow run — nothing to configure.
+**Fix:**
+1. Regenerate a new Automation token on npmjs.com
+2. Update `NPM_TOKEN` secret in GitHub:
+   - Go to repo Settings → Secrets → Actions
+   - Delete old `NPM_TOKEN`
+   - Add new one with fresh token
 
-**Add a secret to a repo:**
-1. Go to the repo on GitHub
-2. Settings → Secrets and variables → Actions
-3. New repository secret → enter name and value → Add secret
+### "E409: ...registry error: Package version already exists"
+
+**Cause:** Concurrent publishes tried to push the same version
+
+**Fix:** The workflow includes automatic 3-retry backoff — it should resolve on its own. If it persists:
+1. Check GitHub Actions logs
+2. Delete the problematic version from npm (if you have admin access)
+3. Re-run the workflow
+
+### "Package name is reserved by another user/org"
+
+**Cause:** Someone else claimed `@nirikshaai` before setup
+
+**Fix:**
+1. Check [npmjs.com/org/nirikshaai](https://www.npmjs.com/org/nirikshaai)
+2. If it's unclaimed, contact npm support to reclaim
+3. If claimed by someone else, choose a different scope (e.g., `@niriksha-ai`)
 
 ---
 
-## 5. GitHub Environments — Python
+## GitHub Workflows Using This Token
 
-The Python SDK workflows use GitHub Environments to gate PyPI deployments. Create them before the first release.
+### `dev-release.yml`
+Runs on every merge to `develop`:
+```yaml
+- npm publish --tag dev --provenance
+```
 
-### Create `pypi` environment (stable releases)
+### `release.yml`
+Runs when a tag matching `v*` is pushed (after merge to `main`):
+```yaml
+- npm publish --provenance
+```
 
-1. Go to [github.com/san-data-systems/niriksha-sdk-python/settings/environments](https://github.com/san-data-systems/niriksha-sdk-python/settings/environments)
-2. Click **New environment**
-3. Name: `pypi`
-4. Click **Configure environment**
-5. Optionally add **Required reviewers** (e.g. `vbhadauriya`) for manual approval before stable release
-6. Save protection rules
-
-### Create `pypi-dev` environment (dev builds)
-
-1. Same page → **New environment**
-2. Name: `pypi-dev`
-3. No required reviewers needed (dev builds are automatic)
-4. Save
+Both workflows use the `NPM_TOKEN` secret for authentication.
 
 ---
 
 ## Quick Reference
 
-| Registry | URL | Account email | Username |
-|----------|-----|--------------|---------|
-| PyPI | [pypi.org](https://pypi.org) | niriksha.ai product email | `nirikshaai` |
-| npm | [npmjs.com](https://npmjs.com) | niriksha.ai product email | `nirikshaai` |
-| Maven Central | [central.sonatype.com](https://central.sonatype.com) | niriksha.ai product email | niriksha.ai account |
-| GitHub | [github.com/san-data-systems](https://github.com/san-data-systems) | vbhadauriya@redcloudcomputing.com | `V-Bhadauriya` |
+| Item | Value |
+|------|-------|
+| npm account username | `nirikshaai` |
+| npm account email | `releases@niriksha.ai` |
+| Organization scope | `@nirikshaai` |
+| Package name | `@nirikshaai/sdk` |
+| Token type | Automation (not Classic) |
+| GitHub secret name | `NPM_TOKEN` |
+| GitHub repository | `san-data-systems/niriksha-sdk-node` |
 
 ---
 
-> For release workflow and versioning details, see [RELEASE.md](RELEASE.md).  
-> For contributing guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
+## One-Time Setup Checklist
+
+- [ ] Create npm account (`nirikshaai`)
+- [ ] Enable 2FA on npm account (Auth and writes mode)
+- [ ] Create `@nirikshaai` organization on npm
+- [ ] Generate Automation token
+- [ ] Add `NPM_TOKEN` secret to GitHub Actions
+- [ ] Test with dev build (merge to `develop`)
+- [ ] Test with production release (merge to `main`)
+
+---
+
+For release workflow details, see [RELEASE.md](RELEASE.md).  
+For contributing guidelines, see [CONTRIBUTING.md](CONTRIBUTING.md).
