@@ -12,7 +12,7 @@ const {
   MockNodeSDK,
   capturedOTLPOpts,
   MockOTLPTraceExporter,
-  MockResource,
+  mockResourceFromAttributes,
   mockForceFlush,
 } = vi.hoisted(() => {
   const _sdkStart = vi.fn()
@@ -33,22 +33,21 @@ const {
     Object.assign(this, opts ?? {})
   })
 
-  // NodeSDK calls resource.merge() in sdk.start() — we must provide it
-  const MockResource = vi.fn().mockImplementation(function (
-    this: Record<string, unknown>,
-    attrs: Record<string, unknown>,
-  ) {
-    this.attributes = attrs ?? {}
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const self = this
-    this.merge = vi.fn().mockReturnValue(self)
-    this.asyncAttributesPending = false
-    this.waitForAsyncAttributes = vi.fn().mockResolvedValue(undefined)
+  // NodeSDK calls resource.merge() in sdk.start() — we must provide it.
+  // resources 2.x exposes a factory instead of a Resource class.
+  const mockResourceFromAttributes = vi.fn((attrs: Record<string, unknown>) => {
+    const res: Record<string, unknown> = {
+      attributes: attrs ?? {},
+      asyncAttributesPending: false,
+      waitForAsyncAttributes: vi.fn().mockResolvedValue(undefined),
+    }
+    res.merge = vi.fn().mockReturnValue(res)
+    return res
   })
 
   const mockForceFlush = vi.fn().mockResolvedValue(undefined)
 
-  return { MockNodeSDK, capturedOTLPOpts, MockOTLPTraceExporter, MockResource, mockForceFlush }
+  return { MockNodeSDK, capturedOTLPOpts, MockOTLPTraceExporter, mockResourceFromAttributes, mockForceFlush }
 })
 
 // ── vi.mock() declarations (hoisted — must come before imports) ───────────────
@@ -57,10 +56,9 @@ vi.mock('@opentelemetry/sdk-node', () => ({ NodeSDK: MockNodeSDK }))
 vi.mock('@opentelemetry/exporter-trace-otlp-grpc', () => ({
   OTLPTraceExporter: MockOTLPTraceExporter,
 }))
-vi.mock('@opentelemetry/resources', () => ({ Resource: MockResource }))
+vi.mock('@opentelemetry/resources', () => ({ resourceFromAttributes: mockResourceFromAttributes }))
 vi.mock('@opentelemetry/semantic-conventions', () => ({
-  SEMRESATTRS_SERVICE_NAME: 'service.name',
-  SEMRESATTRS_DEPLOYMENT_ENVIRONMENT: 'deployment.environment',
+  ATTR_SERVICE_NAME: 'service.name',
 }))
 vi.mock('@opentelemetry/api', () => ({
   trace: {

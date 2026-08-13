@@ -48,11 +48,9 @@ const SDK_VERSION = '0.0.1' // keep in sync with package.json
 const SDK_LANGUAGE = 'javascript'
 
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc'
-import { Resource } from '@opentelemetry/resources'
-import {
-  SEMRESATTRS_SERVICE_NAME,
-  SEMRESATTRS_DEPLOYMENT_ENVIRONMENT,
-} from '@opentelemetry/semantic-conventions'
+// @opentelemetry/resources 2.x: Resource is a type; construct via factory.
+import { resourceFromAttributes } from '@opentelemetry/resources'
+import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions'
 import type { SpanExporter } from '@opentelemetry/sdk-trace-base'
 import type { MetricReader } from '@opentelemetry/sdk-metrics'
 import type { LogRecordProcessor } from '@opentelemetry/sdk-logs'
@@ -165,9 +163,11 @@ export function init(options: InitOptions): void {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { NodeSDK } = require('@opentelemetry/sdk-node') as typeof import('@opentelemetry/sdk-node')
 
-  const resource = new Resource({
-    [SEMRESATTRS_SERVICE_NAME]: serviceName,
-    [SEMRESATTRS_DEPLOYMENT_ENVIRONMENT]: environment,
+  const resource = resourceFromAttributes({
+    [ATTR_SERVICE_NAME]: serviceName,
+    // Keep the classic key the Niriksha backend indexes on (the semconv
+    // constant moved to incubating as deployment.environment.name).
+    'deployment.environment': environment,
     'telemetry.sdk.name': 'nirikshaai-node',
     'telemetry.sdk.version': SDK_VERSION,
     'telemetry.sdk.language': SDK_LANGUAGE,
@@ -302,7 +302,8 @@ function buildLogProcessor(exporterOpts: any): LogRecordProcessor | undefined {
     const { BatchLogRecordProcessor } = require('@opentelemetry/sdk-logs') as
       typeof import('@opentelemetry/sdk-logs')
     const exporter = new OTLPLogExporter(exporterOpts)
-    return new BatchLogRecordProcessor(exporter)
+    // sdk-logs 0.221: BatchLogRecordProcessor takes an options object.
+    return new BatchLogRecordProcessor({ exporter })
   } catch {
     return undefined
   }
