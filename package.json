@@ -1,15 +1,15 @@
 {
   "name": "@nirikshaai/sdk",
   "version": "0.0.1",
-  "description": "NirikshaAI Node.js/TypeScript SDK — full-stack observability via OpenTelemetry",
+  "description": "NirikshaAI Node.js/TypeScript SDK \u2014 full-stack observability via OpenTelemetry",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
+      "types": "./dist/index.d.ts",
       "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.js"
     }
   },
   "engines": {
@@ -51,10 +51,10 @@
     "@opentelemetry/exporter-logs-otlp-grpc": "~0.221.0",
     "@opentelemetry/exporter-metrics-otlp-grpc": "~0.221.0",
     "@opentelemetry/exporter-trace-otlp-grpc": "~0.221.0",
-    "@opentelemetry/resources": "~1.25.0",
-    "@opentelemetry/sdk-logs": "~0.52.0",
-    "@opentelemetry/sdk-metrics": "~1.25.0",
-    "@opentelemetry/semantic-conventions": "~1.25.0"
+    "@opentelemetry/resources": "~2.10.0",
+    "@opentelemetry/sdk-logs": "~0.221.0",
+    "@opentelemetry/sdk-metrics": "~2.10.0",
+    "@opentelemetry/semantic-conventions": "~1.38.0"
   },
   "devDependencies": {
     "@opentelemetry/api": "^1.9.1",
