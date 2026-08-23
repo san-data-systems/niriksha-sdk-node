@@ -174,14 +174,45 @@ init({ ..., insecure: true })
 | `@opentelemetry/instrumentation-graphql` | GraphQL resolver names, operation type |
 | `@opentelemetry/instrumentation-grpc` | gRPC server and client calls, method names, status codes |
 
-### LLM (requires `enableLLM: true`)
+### LLM, agents and vector stores (requires `enableLLM: true`)
+
+These are **not** bundled — install the ones you need alongside the SDK. Anything
+not installed is skipped silently, so there is no cost to installing only some.
+
+```bash
+npm install @traceloop/instrumentation-anthropic @traceloop/instrumentation-langchain
+```
+
+**Model providers**
 
 | Package | What's captured |
 |---|---|
-| `@opentelemetry/instrumentation-openai` | Chat completions, embeddings, model name, token usage |
-| `@opentelemetry/instrumentation-anthropic` | Messages API calls, model name, token usage |
-| `@opentelemetry/instrumentation-langchain` | Chain invocations, individual tool call spans |
+| `@opentelemetry/instrumentation-openai` *(or `@traceloop/instrumentation-openai`)* | Chat completions, embeddings, model name, token usage |
+| `@traceloop/instrumentation-anthropic` | Messages API calls, model name, token usage |
+| `@traceloop/instrumentation-bedrock` | AWS Bedrock invocations, model ID, token usage |
 | `@traceloop/instrumentation-vertexai` | Vertex AI API calls, model name, token usage |
+| `@traceloop/instrumentation-azure` | Azure OpenAI calls, deployment name, token usage |
+| `@traceloop/instrumentation-cohere` | Generate, chat and rerank calls, model name, token usage |
+| `@traceloop/instrumentation-together` | Chat and completion calls, model name, token usage |
+
+**Agent and orchestration frameworks**
+
+| Package | What's captured |
+|---|---|
+| `@traceloop/instrumentation-langchain` | Chain invocations, individual tool call spans |
+| `@traceloop/instrumentation-llamaindex` | Query engine, retrieval and synthesiser spans |
+| `@traceloop/instrumentation-mcp` | MCP tool calls, server name and method |
+
+**Vector stores** — these populate the RAG retrieval views.
+
+| Package | What's captured |
+|---|---|
+| `@traceloop/instrumentation-chromadb` | Query and add operations, collection name |
+| `@traceloop/instrumentation-pinecone` | Query and upsert operations, index name |
+| `@traceloop/instrumentation-qdrant` | Search and upsert operations, collection name |
+
+> Where both an `@opentelemetry/*` and a `@traceloop/*` package exist for the same
+> library, the first one found is used — installing both does not double-instrument.
 
 ---
 

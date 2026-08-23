@@ -325,35 +325,123 @@ function loadGeneralInstrumentations() {
   return loadInstrumentations(candidates, false)
 }
 
+/**
+ * LLM, agent-framework and vector-store instrumentations, applied only when
+ * `enableLLM: true`.
+ *
+ * Each entry lists one or more candidate packages; the first that resolves
+ * wins, so listing both the official OTel package and the Traceloop one never
+ * double-instruments the same library. Every package and exported class name
+ * here has been verified to exist on npm — `@opentelemetry/instrumentation-
+ * anthropic` and `-langchain`, previously listed, do not exist at all, so
+ * Anthropic and LangChain tracing could never have worked.
+ *
+ * None of these are declared as dependencies: the user installs the ones they
+ * need, and anything absent is skipped.
+ */
+export const LLM_INSTRUMENTATION_CANDIDATES: InstrumentationCandidate[] = [
+    // Model providers
+    { pkgs: ['@opentelemetry/instrumentation-openai', '@traceloop/instrumentation-openai'], cls: 'OpenAIInstrumentation' },
+    { pkgs: ['@traceloop/instrumentation-anthropic'],  cls: 'AnthropicInstrumentation' },
+    { pkgs: ['@traceloop/instrumentation-bedrock'],    cls: 'BedrockInstrumentation' },
+    { pkgs: ['@traceloop/instrumentation-vertexai'],   cls: 'VertexAIInstrumentation' },
+    { pkgs: ['@traceloop/instrumentation-azure'],      cls: 'AzureOpenAIInstrumentation' },
+    { pkgs: ['@traceloop/instrumentation-cohere'],     cls: 'CohereInstrumentation' },
+    { pkgs: ['@traceloop/instrumentation-together'],   cls: 'TogetherInstrumentation' },
+    // Agent / orchestration frameworks
+    { pkgs: ['@traceloop/instrumentation-langchain'],  cls: 'LangChainInstrumentation' },
+    { pkgs: ['@traceloop/instrumentation-llamaindex'], cls: 'LlamaIndexInstrumentation' },
+    { pkgs: ['@traceloop/instrumentation-mcp'],        cls: 'McpInstrumentation' },
+    // Vector stores
+    { pkgs: ['@traceloop/instrumentation-chromadb'],   cls: 'ChromaDBInstrumentation' },
+    { pkgs: ['@traceloop/instrumentation-pinecone'],   cls: 'PineconeInstrumentation' },
+    { pkgs: ['@traceloop/instrumentation-qdrant'],     cls: 'QdrantInstrumentation' },
+]
+
 function loadLLMInstrumentations(capturePrompts: boolean) {
-  const candidates = [
-    { pkg: '@opentelemetry/instrumentation-openai',    cls: 'OpenAIInstrumentation' },
-    { pkg: '@opentelemetry/instrumentation-anthropic', cls: 'AnthropicInstrumentation' },
-    { pkg: '@opentelemetry/instrumentation-langchain', cls: 'LangChainInstrumentation' },
-    { pkg: '@traceloop/instrumentation-vertexai',      cls: 'VertexAIInstrumentation' },
-  ]
-  return loadInstrumentations(candidates, capturePrompts)
+  return loadInstrumentations(LLM_INSTRUMENTATION_CANDIDATES, capturePrompts)
+}
+
+export interface InstrumentationCandidate {
+  /** Candidate package names, tried in order; the first that resolves is used. */
+  pkgs: string[]
+  /** Expected exported class name. Resolution falls back to scanning exports. */
+  cls: string
+}
+
+/** True when require() failed because the package is simply not installed. */
+function isModuleNotFound(err: unknown): boolean {
+  return (err as { code?: string } | null)?.code === 'MODULE_NOT_FOUND'
+}
+
+/**
+ * Resolve the instrumentation class from a module.
+ *
+ * Falls back to scanning exports for anything named `*Instrumentation` so a
+ * renamed or newly added export does not silently disable the integration —
+ * the failure mode is invisible, since a missing class simply produced no spans.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function resolveInstrumentationClass(mod: any, cls: string): any {
+  if (mod?.[cls]) return mod[cls]
+  if (typeof mod?.default === 'function') return mod.default
+  for (const key of Object.keys(mod ?? {})) {
+    if (key.endsWith('Instrumentation') && typeof mod[key] === 'function') return mod[key]
+  }
+  return undefined
 }
 
 function loadInstrumentations(
-  candidates: { pkg: string; cls: string }[],
+  candidates: (InstrumentationCandidate | { pkg: string; cls: string })[],
   capturePrompts: boolean,
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result: any[] = []
-  for (const { pkg, cls } of candidates) {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const mod = require(pkg)
-      const InstrCls = mod[cls] ?? mod.default
-      if (InstrCls) {
-        const opts = capturePrompts ? { captureContent: true } : {}
-        result.push(new InstrCls(opts))
+
+  for (const candidate of candidates) {
+    const pkgs = 'pkgs' in candidate ? candidate.pkgs : [candidate.pkg]
+    const cls = candidate.cls
+
+    for (const pkg of pkgs) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let mod: any
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        mod = require(pkg)
+      } catch (err) {
+        // Not installed is the normal case. Anything else is a real problem and
+        // must not be silent, or a broken instrumentation looks like an absent one.
+        if (!isModuleNotFound(err)) {
+          logger.warn(`failed to load ${pkg}: ${(err as Error).message}`)
+        }
+        continue
       }
-    } catch {
-      // Library not installed — skip
+
+      const InstrCls = resolveInstrumentationClass(mod, cls)
+      if (!InstrCls) {
+        logger.warn(`${pkg} is installed but exports no instrumentation class`)
+        break
+      }
+
+      try {
+        // captureContent is not accepted by every instrumentation. Retry without
+        // it rather than dropping the integration for the whole library.
+        result.push(capturePrompts ? new InstrCls({ captureContent: true }) : new InstrCls({}))
+      } catch (err) {
+        if (capturePrompts) {
+          try {
+            result.push(new InstrCls({}))
+          } catch (inner) {
+            logger.warn(`failed to construct ${pkg}: ${(inner as Error).message}`)
+          }
+        } else {
+          logger.warn(`failed to construct ${pkg}: ${(err as Error).message}`)
+        }
+      }
+      break // first resolving package wins — never double-instrument
     }
   }
+
   return result
 }
 
