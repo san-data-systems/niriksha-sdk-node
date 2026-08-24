@@ -40,6 +40,25 @@ export { getPrompt, listPrompts, clearPromptCache } from './prompt'
 export { recordConversation, recordRagChunk, recordToolCall } from './span'
 export type { RAGChunk, ToolCall } from './span'
 export { redactPii } from './pii'
+export {
+  guardCheck,
+  guardCheckTool,
+  guardCheckBatch,
+  guardConfigured,
+  safeText,
+  localSecretFindings,
+  GuardBlocked,
+  GuardError,
+} from './guard'
+export type {
+  GuardVerdict,
+  GuardFinding,
+  GuardAction,
+  GuardFailMode,
+  GuardCheckOptions,
+  GuardBatchItem,
+  GuardBatchResult,
+} from './guard'
 export { setBaggageContext, getBaggage } from './baggage'
 export { withFlush } from './serverless'
 export { expressMiddleware, fastifyPlugin } from './middleware'
@@ -54,6 +73,7 @@ import { ATTR_SERVICE_NAME } from '@opentelemetry/semantic-conventions'
 import type { SpanExporter } from '@opentelemetry/sdk-trace-base'
 import type { MetricReader } from '@opentelemetry/sdk-metrics'
 import type { LogRecordProcessor } from '@opentelemetry/sdk-logs'
+import { _configureGuard, type GuardFailMode } from './guard'
 
 /** Internal state shared with eval and prompt modules */
 export const _state = {
@@ -118,6 +138,79 @@ export interface InitOptions {
    * Use for private CAs. Mutually exclusive with tlsSkipVerify and insecure.
    */
   caCertFile?: string
+  /**
+   * Base URL of the guard endpoint — the OTLP gateway's HTTP listener, e.g.
+   * "https://ingest.niriksha.ai". The guard lives on the gateway, not the REST
+   * API, so in SaaS these are different hosts. Derived from otlpEndpoint when
+   * set and from endpoint when not; see deriveGuardUrl.
+   */
+  guardEndpoint?: string
+  /**
+   * What the guard does when it cannot reach the server:
+   *   'open'           (default) allow the text through
+   *   'closed'         block everything
+   *   'secrets_closed' allow everything except locally-detectable credentials
+   * Every fall-back logs a warning and increments guard.fail_open — it is never
+   * silent.
+   */
+  guardFailOpen?: GuardFailMode
+  /**
+   * Default mode sent with every guard call: 'monitor' to observe what would be
+   * blocked without enforcing, or 'block'. Note that 'monitor' cannot lift a
+   * block your org's AIDR policy mandates.
+   */
+  guardMode?: 'monitor' | 'block'
+}
+
+/** The gateway's OTLP gRPC port and its HTTP port, where /v1/guard lives. */
+const OTLP_GRPC_PORT = '4317'
+const OTLP_HTTP_PORT = '4318'
+
+/**
+ * Best-effort guard base URL, so the common cases need no extra option.
+ *
+ * The guard endpoint is served by the OTLP gateway, not the REST API, and in SaaS
+ * those are different hosts — so `endpoint` alone is not the answer.
+ *
+ * When `otlpEndpoint` is given it names the gateway, which is the right host;
+ * only its port and scheme need translating. The gateway's gRPC listener is 4317
+ * and its HTTP listener 4318, so a default deployment maps cleanly. A non-default
+ * port (443 behind an ingress, say) is kept as configured, because guessing would
+ * be worse than reusing what the caller already set.
+ *
+ * With no `otlpEndpoint` — the single-host Private Cloud layout — the REST base is
+ * also the gateway, so it is used unchanged.
+ *
+ * Pass `guardEndpoint` explicitly for anything this does not cover; getting it
+ * wrong shows up as a guard that logs "unreachable" on every call, which is loud
+ * but only after the fact.
+ */
+export function deriveGuardUrl(base: string, otlpEndpoint?: string): string {
+  if (!otlpEndpoint) return base
+
+  let host = otlpEndpoint
+  let scheme = 'https'
+  const schemeSplit = host.indexOf('://')
+  if (schemeSplit >= 0) {
+    scheme = host.slice(0, schemeSplit)
+    host = host.slice(schemeSplit + 3)
+  }
+
+  const portSplit = host.lastIndexOf(':')
+  if (portSplit > 0) {
+    const hostname = host.slice(0, portSplit)
+    let port = host.slice(portSplit + 1)
+    if (port === OTLP_GRPC_PORT) {
+      port = OTLP_HTTP_PORT
+      // A bare gRPC port means a direct, usually in-cluster gateway, which is
+      // typically plaintext. TLS-terminated deployments set 443 and are left
+      // alone by the branch above.
+      scheme = 'http'
+    }
+    return `${scheme}://${hostname}:${port}`
+  }
+
+  return `${scheme}://${host}`
 }
 
 let _initialized = false
@@ -144,10 +237,19 @@ export function init(options: InitOptions): void {
     insecure = false,
     tlsSkipVerify = false,
     caCertFile,
+    guardEndpoint,
+    guardFailOpen = 'open',
+    guardMode,
   } = options
 
   _state.baseUrl = endpoint.replace(/\/$/, '')
   _state.apiKey = apiKey
+  _configureGuard(
+    guardEndpoint ? guardEndpoint.replace(/\/$/, '') : deriveGuardUrl(_state.baseUrl, otlpEndpoint),
+    apiKey,
+    guardFailOpen,
+    guardMode,
+  )
 
   const useTLS = endpoint.startsWith('https')
   const useInsecure = insecure || !useTLS
