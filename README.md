@@ -89,6 +89,33 @@ Your `apiKey` is a project-scoped key (prefixed `nai_`). It encodes which org an
 
 ---
 
+## Wrap an Agent
+
+Three calls turn an agent into a **run** on LLM → Runs — live, with a timeline, token and tool counts, and the deterministic health findings (long running, repeated tool, repeated error, no activity, possible loop):
+
+```ts
+import { init, observe, span, log } from '@nirikshaai/sdk'
+
+init({ endpoint: 'https://app.niriksha.ai', apiKey: 'nai_...', serviceName: 'research-agent' })
+
+const answer = await observe('research-agent', async () => {        // the root span becomes the run
+  log('info', 'agent started', { question })
+  const plan = await span('plan', () => callModel(question), { type: 'llm', model: 'gpt-4o' })
+  const docs = await span('search', () => search(plan), { type: 'tool' })
+  return span('answer', () => callModel(docs), { type: 'llm' })
+})
+```
+
+| Call | What it is | Attributes written |
+|---|---|---|
+| `observe(name, fn)` | the agent entry point; status becomes Succeeded / Failed | `gen_ai.operation.name=invoke_agent`, `gen_ai.agent.name`, `niriksha.run=true` |
+| `span(name, fn, { type })` | one step: `llm`, `tool`, `agent` or `retrieval` | `gen_ai.operation.name` (`chat`, `execute_tool`, `invoke_agent`, `retrieval`), `gen_ai.tool.name`, `gen_ai.request.model` |
+| `log(level, message, attrs)` | a structured line on the run | a span event, plus an OTel log record when `@opentelemetry/api-logs` is present |
+
+Both sync and async functions work; exceptions are recorded on the span and re-thrown. These are plain OpenTelemetry GenAI semantic conventions, so the spans read in any OTel backend too. See `examples/agent-basic/agent.ts` for a runnable agent that produces a finding on purpose.
+
+---
+
 ## LLM Applications
 
 Enable LLM instrumentation with the `enableLLM` flag. When set, the SDK automatically patches supported LLM client libraries so that every API call creates a standard OpenTelemetry span with token counts, model name, and (optionally) prompt/completion content.
