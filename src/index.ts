@@ -37,6 +37,8 @@
 import { logger } from './internal/logger'
 export { submitEval, submitEvalsBatch } from './eval'
 export { getPrompt, listPrompts, clearPromptCache } from './prompt'
+export { observe, span, log, toAttributes } from './observe'
+export type { SpanType, ObserveOptions, SpanOptions, LogLevel } from './observe'
 export { recordConversation, recordRagChunk, recordToolCall } from './span'
 export type { RAGChunk, ToolCall } from './span'
 export { redactPii } from './pii'
